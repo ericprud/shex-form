@@ -1,0 +1,24 @@
+{
+  "name": "shex-form",
+  "version": "0.0.1",
+  "description": "playground for ShEx-driven interfaces",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ericprud/shex-form.git"
+  },
+  "keywords": [],
+  "author": "Eric Prud'hommeaux",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ericprud/shex-form/issues"
+  },
+  "homepage": "https://github.com/ericprud/shex-form#readme",
+  "dependencies": {
+    "@shexjs/core": "^1.0.0-alpha.1",
+    "@shexjs/parser": "^1.0.0-alpha.1"
+  }
+}

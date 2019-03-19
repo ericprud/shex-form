@@ -1,0 +1,67 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>harness for ShExC forms</title>
+    <style type="text/css">
+      .panel { float: left; width: 45%; border-width: thin; border-style: solid; margin: 1em; }
+      .panel h2 { text-align: center; margin: 0; }
+      .panel textarea { height: 40%; width: 100%; }
+      .inter-panel { float:left; height: 44%; position: relative; }
+      .ㄷ { position: relative; top: 50%; }
+      .V { position: absolute; bottom: 0em; }
+      .shexc { border-color: blue; }
+      .shexj { border-color: green; }
+      .form { clear: both; border: thin solid black; display: table; padding-right: 2em; }
+      .form h3 { margin: 0; padding-left: .3em; }
+      .separator { list-style-type: none; margin-left: -1.1em; }
+      .disjunction { display: inline-block; border-left: thin solid grey; }
+      input { margin-left: 1em; border: none; background-color: antiquewhite; }
+      ul { margin: 0; }
+      li { line-height: 2em; }
+    </style>
+  </head>
+  <body>
+    <h1>harness for ShExC forms</h1>
+    <div class="panel shexc">
+      <h2>ShExC</h2>
+      <textarea>
+      </textarea>
+    </div>
+    <div class="inter-panel">
+      <button class="ㄷ">&gt;</button>
+      <button class="V">V</button>
+    </div>
+    <div class="panel shexj">
+      <h2>ShExJ</h2>
+      <textarea>
+      </textarea>
+    </div>
+    <div class="form">
+      <h3>User Profile</h3>
+      <ul>
+        <li>webid<input></input></li>
+        <li class="disjunction"><ul>
+          <li>foaf:name <input></input></li>
+          <li class="separator"><hr/></li>
+          <li>foaf:givenName<input></input></li>
+          <li>foaf:familyName<input></input></li>
+        </ul></li>
+        <li>foaf:homepace<input></input></li>
+        <li>foaf:address
+        <div class="form">
+          <h3>Address</h3>
+          <ul>
+            <li>vc:street<input></input></li>
+            <li class="disjunction"><ul>
+              <li>vc:prefecture<input></input></li>
+              <li class="separator"><hr/></li>
+              <li>vc:county<input></input></li>
+            </ul></li>
+            <li>vc:country<input></input></li>
+          </ul>
+        </div>
+        </li>
+        <li>solid:thingy<input></input></li>
+      </ul>
+    </div>
+  </body>
+</html>
