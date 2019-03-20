@@ -16,8 +16,10 @@
       .form h3 { margin: 0; padding-left: .3em; }
       .separator { list-style-type: none; margin-left: -1.1em; }
       .disjunction { display: inline-block; border-left: thin solid grey; }
+      .add { color: darkgreen; }
       h1 { margin: 0; }
-      input { margin-left: 1em; border: none; background-color: antiquewhite; }
+      input, select { margin-left: 1em; border: none; background-color: antiquewhite; }
+      input[readonly] { background-color: lightgrey; }
       ul { margin: 0; }
       li { line-height: 2em; }
     </style>
@@ -44,29 +46,39 @@
     <div class="form" style="float:left; ">
       <h3>User Profile</h3>
       <ul>
-        <li>webid<input></input></li>
+        <li>webid<input readonly="readonly"></input></li>
         <li class="disjunction"><ul>
           <li>foaf:name <input></input></li>
           <li class="separator"><hr/></li>
           <li>foaf:givenName<input></input></li>
           <li>foaf:familyName<input></input></li>
         </ul></li>
-        <li>foaf:homepace<input></input></li>
-        <li>foaf:address
+        <li>foaf:homepage<input></input></li>
+        <li>vcard:hasAddress <span class="add">+</span>
         <div class="form">
           <h3>Address</h3>
           <ul>
-            <li>vc:street<input></input></li>
+            <li>street<input></input></li>
             <li class="disjunction"><ul>
-              <li>vc:prefecture<input></input></li>
+              <li>vc:locality<input></input></li>
               <li class="separator"><hr/></li>
-              <li>vc:county<input></input></li>
+              <li>vc:region<input></input></li>
             </ul></li>
-            <li>vc:country<input></input></li>
+            <li>country
+            <select>
+	            <option value="Afghanistan">Afghanistan</option>
+	            <option value="Belgium">Belgium</option>
+	            <option value="CR">CoCosta Ricaa Rica</option>
+	            <option value="France">France</option>
+	            <option value="United Kingdom">United Kingdom</option>
+	            <option value="United States">Unid States</option>
+	            <option value="Zimbabwe">Zimbabwe</option>
+            </select>
+            </li>
           </ul>
         </div>
         </li>
-        <li>solid:thingy<input></input></li>
+        <li>company<input></input></li>
       </ul>
     </div>
   </div>
