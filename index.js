@@ -1,67 +1,136 @@
 (function () {
-  function paintShape (schema, shexpr) {
-    let div = $("<div/>", { class: "form" })
-    let label = findLabel(shexpr)
-    if (label)
-      div.append($("<h3>").text(label.object.value))
-    let ul = $("<ul/>").append(paintTripleExpression(schema, shexpr.expression))
-    div.append(ul)
-    return [div]
-  }
+  const IRI_UserProfile = location.href + "#UserProfile"
+  const IRI_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  const IRI_RdfType = IRI_Rdf + "type"
+  const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
+  const IRI_XsdString = IRI_Xsd + "string"
+  const IRI_RdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label"
+  const IRI_Layout = "http://janeirodigital.com/layout#"
+  const IRI_LayoutReadOnly = IRI_Layout + "readonly"
+  let Prefixes = {} // any prefixes from current ShExC
 
-  function paintTripleConstraint (schema, tc) {
-    let label = findLabel(tc);
-    return [$("<li/>").text(label ? label.object.value : tc.predicate)]
-  }
+  function Renderer (schema) {
+    return {
+      findShapeExpression: findShapeExpression,
+      paintShapeExpression: paintShapeExpression,
+      paintShape: paintShape,
+      paintNodeConstraint: paintNodeConstraint,
+      paintTripleExpression: paintTripleExpression,
+      paintTripleConstraint: paintTripleConstraint,
+    }
 
-  function paintTripleExpression (schema, texpr) {
-    if (typeof texpr === "string")
-      return paintTripleExpression(schema, findTripleExpression(schema, texpr)) // @@ later
-    switch (texpr.type) {
-    case "TripleConstraint":
-      return paintTripleConstraint(schema, texpr)
-    case "EachOf":
-      return texpr.expressions.reduce(
-        (acc, nested) =>
-          acc.concat(paintTripleExpression (schema, nested)), []
-      )
-    case "OneOf":
-      return $("<li/>", { class: "disjunction" }).append(
-        $("<ul/>").append(
-          texpr.expressions.reduce(
-            (acc, e, idx) =>
-              (idx > 0
-               ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
-               : acc)
-              .concat(paintTripleExpression(schema, e)),
-            []
+    function findShapeExpression (goal) {
+      return schema.shapes.find(se => se.id === goal)
+    }
+
+    /* All paint* functions return an array of jquery nodes.
+     */
+
+    function paintShapeExpression (shexpr) {
+      if (typeof shexpr === "string")
+        return paintShapeExpression(findShapeExpression(shexpr))
+      switch (shexpr.type) {
+      case "Shape":
+        return paintShape(shexpr)
+      case "NodeConstraint":
+        return paintNodeConstraint(shexpr)
+      default: throw Error("paintShapeExpression(" + shexpr.type + ")")
+      }
+    }
+
+    function paintShape (shexpr) {
+      let div = $("<div/>", { class: "form" })
+      let label = findLabel(shexpr)
+      if (label)
+        div.append($("<h3>").text(label.object.value))
+      let ul = $("<ul/>").append(paintTripleExpression(shexpr.expression))
+      div.append(ul)
+      return [div]
+    }
+
+    function paintNodeConstraint (nc) {
+      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
+        throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
+
+      if ("datatype" in nc)
+        switch (nc.datatype) {
+        case IRI_XsdString:
+          return $("<input/>")
+        default:
+          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
+        }
+
+      if ("nodeKind" in nc)
+        switch (nc.nodeKind) {
+        case "iri" : 
+          return $("<input/>")
+        default:
+          throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
+        }
+
+      if ("values" in nc)
+        return $("<select/>").append(nc.values.map(v => {
+          let vStr = typeof v === "object"
+              ? v.value      // a string
+              : localName(v) // an IRI
+          return $("<option/>", {value: vStr}).text(vStr)
+        }))
+
+      throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
+    }
+
+    function paintTripleExpression (texpr) {
+      if (typeof texpr === "string")
+        return paintTripleExpression(findTripleExpression(texpr)) // @@ later
+      switch (texpr.type) {
+      case "TripleConstraint":
+        return paintTripleConstraint(texpr)
+      case "EachOf":
+        return texpr.expressions.reduce(
+          (acc, nested) =>
+            acc.concat(paintTripleExpression (nested)), []
+        )
+      case "OneOf":
+        return $("<li/>", { class: "disjunction" }).append(
+          $("<ul/>").append(
+            texpr.expressions.reduce(
+              (acc, e, idx) =>
+                (idx > 0
+                 ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
+                 : acc
+                ).concat(paintTripleExpression(e)),
+              []
+            )
           )
         )
-      )
-    default: throw Error("paintTripleExpression(" + texpr.type + ")")
+      default: throw Error("paintTripleExpression(" + texpr.type + ")")
+      }
     }
-  }
 
-  function paintShapeExpression (schema, shexpr) {
-    if (typeof shexpr === "string")
-      return paintShapeExpression(schema, findShapeExpression(schema, shexpr))
-    switch (shexpr.type) {
-    case "Shape": return paintShape(schema, shexpr)
-    default: throw Error("paintShapeExpression(" + shexpr.type + ")")
+    function paintTripleConstraint (tc) {
+      let label = findLabel(tc);
+      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate))
+      if (typeof tc.max !== "undefined" && tc.max !== 1)
+        ret.append([" ", $("<span/>", { class: "add" }).text("+")])
+      if (tc.valueExpr) {
+        let valueHtml = paintShapeExpression(tc.valueExpr)
+        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
+        if (ro)
+          valueHtml.attr("readonly", "readonly")
+        ret.append(valueHtml)
+      }
+      return [ret]
     }
-  }
-
-  function findShapeExpression (schema, goal) {
-    return schema.shapes.find(se => se.id === goal)
   }
 
   function findLabel (shexpr) {
-    return (shexpr.annotations || []).find(a => a.predicate === IRI_rdfs)
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_RdfsLabel)
   }
 
-  const IRI_UserProfile = location.href + "#UserProfile"
-  const IRI_rdfs = "http://www.w3.org/2000/01/rdf-schema#label"
-  let Prefixes = {}
+  function localName (iri) {
+    let p = Object.keys(Prefixes).find(p => iri.startsWith(Prefixes[p]))
+    return p ? p + ":" + iri.substr(Prefixes[p].length) : iri
+  }
 
   // populate default ShExC
   $(".shexc textarea").val(defaultShExC())
@@ -82,7 +151,7 @@
     let parser = shexParser.construct(location.href)
     try {
       let as = parser.parse($(".shexc textarea").val())
-      Prefixes = as.prefixes
+      Prefixes = as.prefixes || {}
       let shexjText = JSON.stringify(shexCore.Util.AStoShExJ(as), null, 2)
       $(".shexj textarea").val(shexjText)
       // $("#shexj-to-form").click() // -- causes .shexj to blank when clicked.
@@ -97,8 +166,9 @@
     $(".shexj pre").show()
     try {
       let schema = JSON.parse($(".shexj textarea").val())
-      $("#form").replaceWith(
-        paintShapeExpression(schema, IRI_UserProfile)[0]
+      $("#form").replaceWith( // @@ assumes only one return
+        new Renderer(schema).
+          paintShapeExpression(IRI_UserProfile)[0]
           .attr("id", "form")
           .addClass("panel")
       )
@@ -112,7 +182,7 @@
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX : <http://janeirodigital.com/ns#layout>
+PREFIX : <http://janeirodigital.com/layout#>
 PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 
 <#UserProfile> {
@@ -124,7 +194,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
       foaf:familyName xsd:string
   )+ ;
   foaf:homepage IRI /^tel:+?[0-9.-]/ ? ;
-  vc:hasAddress @<#vcard_street-address> ? ;
+  vc:hasAddress @<#vcard_street-address> * ;
   vc:organization-name xsd:string ?
     // rdfs:label "company" ;
 } // rdfs:label "User Profile"
