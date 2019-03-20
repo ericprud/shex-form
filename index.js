@@ -18,12 +18,26 @@
     if (typeof texpr === "string")
       return paintTripleExpression(schema, findTripleExpression(schema, texpr)) // @@ later
     switch (texpr.type) {
-    case "TripleConstraint": return paintTripleConstraint(schema, texpr)
-    case "EachOf": return texpr.expressions.reduce(
-      (acc, nested) =>
-        acc.concat(paintTripleExpression (schema, nested)), []
-    )
-    case "OneOf": return "OR"
+    case "TripleConstraint":
+      return paintTripleConstraint(schema, texpr)
+    case "EachOf":
+      return texpr.expressions.reduce(
+        (acc, nested) =>
+          acc.concat(paintTripleExpression (schema, nested)), []
+      )
+    case "OneOf":
+      return $("<li/>", { class: "disjunction" }).append(
+        $("<ul/>").append(
+          texpr.expressions.reduce(
+            (acc, e, idx) =>
+              (idx > 0
+               ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
+               : acc)
+              .concat(paintTripleExpression(schema, e)),
+            []
+          )
+        )
+      )
     default: throw Error("paintTripleExpression(" + texpr.type + ")")
     }
   }
