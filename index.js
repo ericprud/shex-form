@@ -5,8 +5,8 @@
     .hide()
     .height($(".shexc textarea").height())
     .on("click", evt => {
-      $(".panel pre").hide()
-      $(".shexc textarea").show()
+      $(evt.target).parent().hide()
+      $(evt.target).parent().parent().find("textarea").show()
   })
   $("#shexc-to-shexj").on("click", evt => {
     let shexcText = $(".shexc textarea").val()
