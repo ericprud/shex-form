@@ -1,6 +1,56 @@
 (function () {
-  let shexc = defaultShExC()
-  $(".shexc textarea").val(shexc)
+  function paintShape (schema, shexpr) {
+    let div = $("<div/>", { class: "form" })
+    let label = findLabel(shexpr)
+    if (label)
+      div.append($("<h3>").text(label.object.value))
+    let ul = $("<ul/>").append(paintTripleExpression(schema, shexpr.expression))
+    div.append(ul)
+    return [div]
+  }
+
+  function paintTripleConstraint (schema, tc) {
+    let label = findLabel(tc);
+    return [$("<li/>").text(label ? label.object.value : tc.predicate)]
+  }
+
+  function paintTripleExpression (schema, texpr) {
+    if (typeof texpr === "string")
+      return paintTripleExpression(schema, findTripleExpression(schema, texpr)) // @@ later
+    switch (texpr.type) {
+    case "TripleConstraint": return paintTripleConstraint(schema, texpr)
+    case "EachOf": return texpr.expressions.reduce(
+      (acc, nested) =>
+        acc.concat(paintTripleExpression (schema, nested)), []
+    )
+    case "OneOf": return "OR"
+    default: throw Error("paintTripleExpression(" + texpr.type + ")")
+    }
+  }
+
+  function paintShapeExpression (schema, shexpr) {
+    if (typeof shexpr === "string")
+      return paintShapeExpression(schema, findShapeExpression(schema, shexpr))
+    switch (shexpr.type) {
+    case "Shape": return paintShape(schema, shexpr)
+    default: throw Error("paintShapeExpression(" + shexpr.type + ")")
+    }
+  }
+
+  function findShapeExpression (schema, goal) {
+    return schema.shapes.find(se => se.id === goal)
+  }
+
+  function findLabel (shexpr) {
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_rdfs)
+  }
+
+  const IRI_UserProfile = location.href + "#UserProfile"
+  const IRI_rdfs = "http://www.w3.org/2000/01/rdf-schema#label"
+  let Prefixes = {}
+
+  // populate default ShExC
+  $(".shexc textarea").val(defaultShExC())
   $(".panel pre")
     .hide()
     .height($(".shexc textarea").height())
@@ -18,6 +68,7 @@
     let parser = shexParser.construct(location.href)
     try {
       let as = parser.parse($(".shexc textarea").val())
+      Prefixes = as.prefixes
       let shexjText = JSON.stringify(shexCore.Util.AStoShExJ(as), null, 2)
       $(".shexj textarea").val(shexjText)
       // $("#shexj-to-form").click() // -- causes .shexj to blank when clicked.
@@ -30,7 +81,18 @@
     $(".shexj .hljs").html(result.value)
     $(".shexj textarea").hide()
     $(".shexj pre").show()
+    try {
+      let schema = JSON.parse($(".shexj textarea").val())
+      $("#form").replaceWith(
+        paintShapeExpression(schema, IRI_UserProfile)[0]
+          .attr("id", "form")
+          .addClass("panel")
+      )
+    } catch (e) {
+      alert(e)
+    }
   })
+
   function defaultShExC () {
     return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
@@ -51,7 +113,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   vc:hasAddress @<#vcard_street-address> ? ;
   vc:organization-name xsd:string ?
     // rdfs:label "company" ;
-}
+} // rdfs:label "User Profile"
 
 <#vcard_street-address> CLOSED {
   a [vc:StreetAddress] ? ;
@@ -62,7 +124,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   vc:country-name @<#vcard_country-name> ?
     // rdfs:label "country" ;
   vc:postal-code xsd:string ?
-}
+} // rdfs:label "Address"
 
 <#vcard_country-name> [
   "Afghanistan"

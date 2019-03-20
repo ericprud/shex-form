@@ -3,7 +3,8 @@
     <title>harness for ShExC forms</title>
     <link rel="stylesheet" href="https://highlightjs.org/static/demo/styles/github.css"/><!-- docco foundation github gruvbox-light isbl-editor-light purebasic qtcreator_light xcode -->
     <style type="text/css">
-      .panel { float: left; width: 45%; border-width: thin; border-style: solid; margin: 1em; }
+      .panel { float: left; }
+      .panel.shexc, .panel.shexj { width: 45%; border-width: thin; border-style: solid; margin: 1em; }
       .panel h2 { text-align: center; margin: 0; }
       .panel textarea { height: 40%; width: 100%; padding: .5em; border: none; }
       .panel pre { overflow: scroll; margin: 0; }
@@ -40,13 +41,11 @@
       <textarea></textarea>
       <pre><code class="hljs">...</code></pre>
     </div><div style="clear: both; ">
-    <div class="form" style="float:left;">
-      click something
-    </div>
-    <div class="form" style="float:left; ">
-      <h3>User Profile</h3>
+    <div id="form" class="form panel">no form yet</div>
+    <div class="form panel">
+      <h3>(goal) User Profile</h3>
       <ul>
-        <li>webid<input readonly="readonly"></input></li>
+        <li>profile webid<input readonly="readonly"></input></li>
         <li class="disjunction"><ul>
           <li>foaf:name <input></input></li>
           <li class="separator"><hr/></li>
