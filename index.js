@@ -10,8 +10,15 @@
   let Prefixes = {} // any prefixes from current ShExC
 
   function Renderer (schema) {
+    validator = shexCore.Validator.construct(
+      // JtoAS modifies original; +1 to working with native ShExJ.
+      shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+    )
+
     return {
       findShapeExpression: findShapeExpression,
+
+      // get the painters in here.
       paintShapeExpression: paintShapeExpression,
       paintShape: paintShape,
       paintNodeConstraint: paintNodeConstraint,
@@ -52,10 +59,24 @@
       if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
         throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
 
+      function validatedInput (makeTerm) {
+        return $("<input/>").on("blur", evt => {
+          let jElt = $(evt.target)
+          let lexicalValue = jElt.val()
+          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
+          if ("errors" in res) {
+            console.warn(res)
+            jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
+          } else {
+            jElt.removeClass("error").removeAttr("title")
+          }
+        })
+      }
+
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
-          return $("<input/>")
+          return validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
@@ -63,7 +84,7 @@
       if ("nodeKind" in nc)
         switch (nc.nodeKind) {
         case "iri" : 
-          return $("<input/>")
+          return validatedInput(s => s) // JSON-LD IRIs are expressed directly as strings.
         default:
           throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
         }
@@ -189,7 +210,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   solid:webid IRI
     // rdfs:label "profile webid"
     // :readonly true ;
-  (   foaf:name xsd:string
+  (   foaf:name xsd:string MinLength 2
     | foaf:givenName xsd:string ;
       foaf:familyName xsd:string
   )+ ;
