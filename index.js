@@ -9,10 +9,8 @@
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   let Prefixes = {} // any prefixes from current ShExC
 
-  function ValidationResultsRenderer (valResults) {
+  function ValidationResultsRenderer (schema) {
     return {
-      findShapeExpression: findShapeExpression,
-
       // get the painters in here.
       paintShapeExpression: paintShapeExpression,
       paintShape: paintShape,
@@ -22,7 +20,7 @@
     }
 
     function findShapeExpression (goal) {
-      return valResults.shapes.find(se => se.id === goal)
+      return schema.shapes.find(se => se.id === goal)
     }
 
     /* All paint* functions return an array of jquery nodes.
@@ -30,7 +28,9 @@
 
     function paintShapeExpression (shexpr, tested) {
       if (shexpr.type === "ShapeRef")
-        return tested.referenced ? paintShapeExpression(tested.referenced) : " @@TODO ShapeRef to NC"
+        return tested.referenced
+        ? paintShapeExpression(tested.referenced)
+        : paintNodeConstraint(findShapeExpression(shexpr.reference), tested)
       switch (shexpr.type) {
       case "ShapeTest":
         return paintShape(shexpr, tested)
@@ -89,7 +89,13 @@
           let vStr = typeof v === "object"
               ? v.value      // a string
               : localName(v) // an IRI
-          return $("<option/>", {value: vStr}).text(vStr)
+          let ret = $("<option/>", {value: vStr}).text(vStr)
+          let mStr = typeof value.object === "object"
+              ? value.object.value      // a string
+              : localName(value.object) // an IRI
+          if (mStr === vStr)
+            ret.attr("selected", "selected")
+          return ret
         }))]
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
@@ -355,13 +361,13 @@
             store.addTriple(quad)
           else {
             let schema = JSON.parse($(".shexj textarea").val())
-            let as = shexCore.Util.ShExJtoAS(schema)
+            let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
             nowDoing = "validating data"
             let validator = shexCore.Validator.construct(as)
             let db = shexCore.Util.makeN3DB(store)
             let results = validator.validate(db, location.href + "#me", IRI_UserProfile)
             $("#form").replaceWith( // @@ assumes only one return
-              new ValidationResultsRenderer(results).
+              new ValidationResultsRenderer(schema).
                 paintShapeExpression(results)[0]
                 .attr("id", "form")
                 .addClass("panel")
