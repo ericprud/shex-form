@@ -9,6 +9,145 @@
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   let Prefixes = {} // any prefixes from current ShExC
 
+  function ValidationResultsRenderer (valResults) {
+    return {
+      findShapeExpression: findShapeExpression,
+
+      // get the painters in here.
+      paintShapeExpression: paintShapeExpression,
+      paintShape: paintShape,
+      paintNodeConstraint: paintNodeConstraint,
+      paintTripleExpression: paintTripleExpression,
+      paintTripleConstraint: paintTripleConstraint,
+    }
+
+    function findShapeExpression (goal) {
+      return valResults.shapes.find(se => se.id === goal)
+    }
+
+    /* All paint* functions return an array of jquery nodes.
+     */
+
+    function paintShapeExpression (shexpr, tested) {
+      if (shexpr.type === "ShapeRef")
+        return tested.referenced ? paintShapeExpression(tested.referenced) : " @@TODO ShapeRef to NC"
+      switch (shexpr.type) {
+      case "ShapeTest":
+        return paintShape(shexpr, tested)
+      case "NodeConstraint":
+        return paintNodeConstraint(shexpr, tested)
+      default: throw Error("paintShapeExpression(" + shexpr.type + ")")
+      }
+    }
+
+    function paintShape (shexpr) {
+      let div = $("<div/>", { class: "form" })
+      let label = findLabel(shexpr)
+      if (label)
+        div.append($("<h3>").text(label.object.value))
+      let ul = $("<ul/>").append(paintTripleExpression(shexpr.solution))
+      div.append(ul)
+      return [div]
+    }
+
+    function paintNodeConstraint (nc, value) {
+      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
+        throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
+
+      function validatedInput (makeTerm) {
+        return $("<input/>").on("blur", evt => {
+          let jElt = $(evt.target)
+          let lexicalValue = jElt.val()
+          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
+          if ("errors" in res) {
+            console.warn(res)
+            jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
+          } else {
+            jElt.removeClass("error").removeAttr("title")
+          }
+        })
+      }
+
+      if ("datatype" in nc)
+        switch (nc.datatype) {
+        case IRI_XsdString:
+          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype).val(value.object.value)]
+        default:
+          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
+        }
+
+      if ("nodeKind" in nc)
+        switch (nc.nodeKind) {
+        case "iri" : 
+          return [validatedInput(s => s).val(value.object)] // JSON-LD IRIs are expressed directly as strings.
+        default:
+          throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
+        }
+
+      if ("values" in nc)
+        return [$("<select/>").append(nc.values.map(v => {
+          let vStr = typeof v === "object"
+              ? v.value      // a string
+              : localName(v) // an IRI
+          return $("<option/>", {value: vStr}).text(vStr)
+        }))]
+
+      throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
+    }
+
+    function paintTripleExpression (texpr) {
+      // if (typeof texpr === "string")
+      //   return paintTripleExpression(findTripleExpression(texpr)) // @@ later
+      switch (texpr.type) {
+      case "TripleConstraintSolutions":
+        return paintTripleConstraint(texpr)
+      case "EachOfSolutions":
+        return texpr.solutions.reduce(
+          (acc, nested) =>
+            acc.concat(nested.expressions.reduce(
+              (acc2, n2) =>
+                acc2.concat(paintTripleExpression(n2)), []
+            )), []
+        )
+      case "OneOfSolutions":
+        return $("<li/>", { class: "disjunction" }).append(
+          $("<ul/>").append(
+            texpr.solutions.reduce(
+              (acc, e, idx) =>
+                (idx > 0
+                 ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
+                 : acc
+                ).concat(e.expressions.reduce(
+                  (acc2, n2) =>
+                    acc2.concat(paintTripleExpression(n2)), []
+                )),
+              []
+            )
+          )
+        )
+      default: throw Error("paintTripleExpression(" + texpr.type + ")")
+      }
+    }
+
+    function paintTripleConstraint (tc) {
+      let label = findLabel(tc);
+      return tc.solutions.map(
+        soln => {
+      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate))
+      // if (typeof tc.max !== "undefined" && tc.max !== 1)
+      //   ret.append([" ", $("<span/>", { class: "add" }).text("+")])
+      if (tc.valueExpr) {
+        let valueHtml = paintShapeExpression(tc.valueExpr, soln)
+        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
+        if (ro)
+          valueHtml.forEach(h => h.attr("readonly", "readonly"))
+        ret.append(valueHtml)
+      }
+          return ret
+        })
+    }
+  }
+
   function SchemaRenderer (schema) {
     validator = shexCore.Validator.construct(
       // JtoAS modifies original; +1 to working with native ShExJ.
@@ -199,6 +338,41 @@
     }
   })
 
+  $("#turtle-to-form").on("click", evt => {
+    let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
+    $(".turtle .hljs").html(result.value)
+    $(".turtle textarea").hide()
+    $(".turtle pre").show()
+    let nowDoing = "Parsing N3"
+    try {
+      const parser = new N3.Parser({ documentIRI: location.href });
+      const store = new N3.Store()
+      parser.parse($(".turtle textarea").val(),
+        (error, quad, prefixes) => {
+          if (error)
+            throw error
+          if (quad)
+            store.addTriple(quad)
+          else {
+            let schema = JSON.parse($(".shexj textarea").val())
+            let as = shexCore.Util.ShExJtoAS(schema)
+            nowDoing = "validating data"
+            let validator = shexCore.Validator.construct(as)
+            let db = shexCore.Util.makeN3DB(store)
+            let results = validator.validate(db, location.href + "#me", IRI_UserProfile)
+            $("#form").replaceWith( // @@ assumes only one return
+              new ValidationResultsRenderer(results).
+                paintShapeExpression(results)[0]
+                .attr("id", "form")
+                .addClass("panel")
+            )
+          }
+        });
+    } catch (e) {
+      alert(e)
+    }
+  })
+
   function defaultShExC () {
     return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
@@ -222,7 +396,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 } // rdfs:label "User Profile"
 
 <#vcard_street-address> CLOSED {
-  a [vc:StreetAddress] ? ;
+  a [vc:StreetAddress vc:MailingAddress] ? ;
   vc:street-address xsd:string ? // rdfs:label "street" ;
   (   vc:locality xsd:string ? ;
     | vc:region xsd:string ?
