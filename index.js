@@ -9,7 +9,7 @@
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   let Prefixes = {} // any prefixes from current ShExC
 
-  function Renderer (schema) {
+  function SchemaRenderer (schema) {
     validator = shexCore.Validator.construct(
       // JtoAS modifies original; +1 to working with native ShExJ.
       shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
@@ -188,7 +188,7 @@
     try {
       let schema = JSON.parse($(".shexj textarea").val())
       $("#form").replaceWith( // @@ assumes only one return
-        new Renderer(schema).
+        new SchemaRenderer(schema).
           paintShapeExpression(IRI_UserProfile)[0]
           .attr("id", "form")
           .addClass("panel")
