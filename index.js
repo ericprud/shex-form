@@ -155,6 +155,7 @@
 
   // populate default ShExC
   $(".shexc textarea").val(defaultShExC())
+  $(".turtle textarea").val(defaultTurtle())
   $(".panel pre")
     .hide()
     .height($(".shexc textarea").height())
@@ -236,10 +237,38 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   "Belgium"
   "CR"
   "France"
+  "日本"
   "United Kingdom"
   "United States"
   "Zimbabwe"
 ]`
   }
 
+  function defaultTurtle () {
+    return `
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <http://janeirodigital.com/layout#>
+PREFIX solid: <http://www.w3.org/ns/solid/terms#>
+
+
+<#me>
+  solid:webid <#webid> ;
+  foaf:name "Robert Smith" ;
+  vc:telephone <tel:+33.6.80.80.00.00> ;
+  vc:hasAddress [
+    a vc:StreetAddress ;
+    vc:locality "神奈川件" ;
+    vc:country-name "日本" ;
+    vc:postal-code "63000-8"
+  ], [
+    a vc:MailingAddress ;
+    vc:region "CF" ;
+    vc:country-name "France" ;
+    vc:postal-code "63000"
+  ] ;
+  vc:organization-name "慶應義塾" .`
+  }
 })()
