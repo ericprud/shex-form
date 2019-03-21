@@ -76,7 +76,7 @@
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
-          return validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)
+          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
@@ -84,18 +84,18 @@
       if ("nodeKind" in nc)
         switch (nc.nodeKind) {
         case "iri" : 
-          return validatedInput(s => s) // JSON-LD IRIs are expressed directly as strings.
+          return [validatedInput(s => s)] // JSON-LD IRIs are expressed directly as strings.
         default:
           throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
         }
 
       if ("values" in nc)
-        return $("<select/>").append(nc.values.map(v => {
+        return [$("<select/>").append(nc.values.map(v => {
           let vStr = typeof v === "object"
               ? v.value      // a string
               : localName(v) // an IRI
           return $("<option/>", {value: vStr}).text(vStr)
-        }))
+        }))]
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
     }
@@ -137,7 +137,7 @@
         let valueHtml = paintShapeExpression(tc.valueExpr)
         let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
         if (ro)
-          valueHtml.attr("readonly", "readonly")
+          valueHtml.forEach(h => h.attr("readonly", "readonly"))
         ret.append(valueHtml)
       }
       return [ret]
