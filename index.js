@@ -40,7 +40,7 @@
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
     parseShExJ().then(
-      schema => { },
+      paintShapeChoice,
       alert
     )
   })
@@ -48,7 +48,7 @@
   // re-generate focus node select whenever clicked
   $("#focus-node").on("mousedown", evt => {
     parseTurtle().then(
-      graph => { },
+      paintNodeChoice,
       alert
     )
   })
@@ -57,6 +57,7 @@
   $("#shexc-to-shexj").on("click", evt => {
     parseShExC().then(
       schema => {
+        paintShapeChoice(schema)
         let shexjText = JSON.stringify(schema, null, 2)
         $(".shexj textarea").val(shexjText)
       },
@@ -68,6 +69,7 @@
   $("#shexj-to-form").on("click", evt => {
     parseShExJ().then(
       schema => {
+        paintShapeChoice(schema)
         $("#form").replaceWith( // @@ assumes only one return
           new SchemaRenderer(schema).
             paintShapeExpression($("#start-shape").val())[0]
@@ -82,6 +84,7 @@
   // [←] button
   $("#turtle-to-form").on("click", evt => {
     parseTurtle().then(graph => {
+      paintNodeChoice(graph)
       let schema = JSON.parse($(".shexj textarea").val())
       let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
       nowDoing = "validating data"
@@ -159,7 +162,6 @@
       $(".shexc .hljs").html(result.value)
       $(".shexc textarea").hide()
       $(".shexc pre").show()
-      paintShapeChoice(schema)
 
       accept(schema)
     } catch (e) {
@@ -180,8 +182,6 @@
         $(".shexj .hljs").html(result.value)
         $(".shexj textarea").hide()
         $(".shexj pre").show()
-
-        paintShapeChoice(schema)
 
         accept(schema)
       } catch (e) {
@@ -207,7 +207,6 @@
             // keep track of prefixes for painting focus menu
             Meta.turtle.prefixes = prefixes
             Meta.turtle.base = parser._base
-            paintNodeChoice(store)
 
             // syntax highlight Turtle
             let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
