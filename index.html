@@ -11,7 +11,9 @@
       .panel pre { overflow: scroll; margin: 0; }
       .inter-panel { float:left; height: 44%; position: relative; }
       #shexc-to-shexj { position: relative; top: 50%; }
-      #shexj-to-form { position: absolute; bottom: 0em; }
+      #shexj-to-form { position: relative; left: 29%; margin-bottom: 1em; }
+      #start-shape-span { position: relative; left: 25%; }
+      #focus-node-span { position: relative; left: 50%; }
       .shexc { border-color: blue; }
       .shexj { border-color: green; }
       .form { border: thin solid black; display: table; padding-right: 2em; }
@@ -34,31 +36,38 @@
   </head>
   <body>
     <h1>harness for ShExC forms</h1>
-    <div class="panel shexc">
-      <h2>ShExC</h2>
-      <textarea></textarea>
-      <pre><code class="hljs">...</code></pre>
-    </div>
-    <div class="inter-panel">
-      <button id="shexc-to-shexj">&gt;</button>
-      <button id="shexj-to-form">V</button>
-    </div>
-    <div class="panel shexj">
-      <h2>ShExJ</h2>
-      <textarea></textarea>
-      <pre><code class="hljs">...</code></pre>
-    </div>
-    <div style="clear: both; "></div>
-    <div id="form" class="panel form">no form yet</div>
-    <div class="inter-panel">
-      <button id="turtle-to-form">&lt;</button>
-    </div>
-    <div class="panel turtle">
-      <h2>Turtle</h2>
-      <textarea></textarea>
-      <pre><code class="hljs">...</code></pre>
-    </div>
-    <div style="clear: both; "></div>
+    <div id="top">
+      <div class="panel shexc">
+        <h2>ShExC</h2>
+        <textarea></textarea>
+        <pre><code class="hljs">...</code></pre>
+      </div>
+      <div class="inter-panel">
+        <button id="shexc-to-shexj">→</button>
+      </div>
+      <div class="panel shexj">
+        <h2>ShExJ</h2>
+        <textarea></textarea>
+        <pre><code class="hljs">...</code></pre>
+      </div>
+      <div id="shexj-to-form-parameters" style="clear: both;">
+        <span id="start-shape-span">start shape: <select id="start-shape"></select></span>
+        <button id="shexj-to-form">↓</button>
+        <!-- <span>start shape: <input value="value"/></span> -->
+        <span id="focus-node-span">focus node: <select id="focus-node"></select></span>
+      </div>
+      <div id="bottom" style="clear:both; ">
+        <div id="form" class="panel form">no form yet</div>
+        <div class="inter-panel">
+          <button id="turtle-to-form">←</button>
+        </div>
+        <div class="panel turtle">
+          <h2>Turtle</h2>
+          <textarea></textarea>
+          <pre><code class="hljs">...</code></pre>
+        </div>
+      </div>
+      <div style="clear: both; "></div>
     <!-- goal structure:
     <div class="form panel">
       <h3>User Profile</h3>
@@ -99,7 +108,7 @@
       </ul>
     </div>
     -->
-  </div>
+    </div>
     <script src="./shex-core-browserify.js"></script>
     <script src="./shex-parser-browserify.js"></script>
     <script src="./n3-browserify.js"></script>

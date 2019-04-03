@@ -1,5 +1,4 @@
 (function () {
-  const IRI_UserProfile = location.href + "#UserProfile"
   const IRI_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
   const IRI_RdfType = IRI_Rdf + "type"
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
@@ -8,7 +7,16 @@
   const IRI_RdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label"
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
-  let Prefixes = {} // any prefixes from current ShExC
+  let Meta = {
+    shexc: {
+      prefixes: {},
+      base: location.href
+    },
+    turtle: {
+      prefixes: {},
+      base: location.href
+    }
+  }
 
   function ValidationResultsRenderer (schema) {
     return {
@@ -90,11 +98,11 @@
         return [$("<select/>").append(nc.values.map(v => {
           let vStr = typeof v === "object"
               ? v.value      // a string
-              : localName(v) // an IRI
+              : localName(v, Meta.shexc) // an IRI
           let ret = $("<option/>", {value: vStr}).text(vStr)
           let mStr = typeof value.object === "object"
               ? value.object.value      // a string
-              : localName(value.object) // an IRI
+              : localName(value.object, Meta.shexc) // an IRI
           if (mStr === vStr)
             ret.attr("selected", "selected")
           return ret
@@ -139,7 +147,7 @@
 
     function paintTripleConstraint (tc) {
       let label = findLabel(tc);
-      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate))
+      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
       // if (typeof tc.max !== "undefined" && tc.max !== 1)
       //   ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       return [ret.append(tc.solutions.reduce(
@@ -242,7 +250,7 @@
         return [$("<select/>").append(nc.values.map(v => {
           let vStr = typeof v === "object"
               ? v.value      // a string
-              : localName(v) // an IRI
+              : localName(v, Meta.shexc) // an IRI
           return $("<option/>", {value: vStr}).text(vStr)
         }))]
 
@@ -279,7 +287,7 @@
 
     function paintTripleConstraint (tc) {
       let label = findLabel(tc);
-      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate))
+      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
       if (typeof tc.max !== "undefined" && tc.max !== 1)
         ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       if (tc.valueExpr) {
@@ -297,9 +305,11 @@
     return (shexpr.annotations || []).find(a => a.predicate === IRI_RdfsLabel)
   }
 
-  function localName (iri) {
-    let p = Object.keys(Prefixes).find(p => iri.startsWith(Prefixes[p]))
-    return p ? p + ":" + iri.substr(Prefixes[p].length) : iri
+  function localName (iri, meta) {
+    let p = Object.keys(meta.prefixes).find(p => iri.startsWith(meta.prefixes[p]))
+    if (p)
+      return p + ":" + iri.substr(meta.prefixes[p].length)
+    return "<" + (iri.startsWith(meta.base) ? iri.substr(meta.base.length) : iri) + ">"
   }
 
   // populate default ShExC
@@ -322,14 +332,29 @@
     let parser = shexParser.construct(location.href)
     try {
       let as = parser.parse($(".shexc textarea").val())
-      Prefixes = as.prefixes || {}
-      let shexjText = JSON.stringify(shexCore.Util.AStoShExJ(as), null, 2)
+      Meta.shexc.prefixes = as.prefixes || {}
+      Meta.shexc.base = as.base || location.href
+      let schema = shexCore.Util.AStoShExJ(as)
+      let shexjText = JSON.stringify(schema, null, 2)
       $(".shexj textarea").val(shexjText)
+      paintShapeChoice(schema)
       // $("#shexj-to-form").click() // -- causes .shexj to blank when clicked.
     } catch (e) {
       alert(e)
     }
   })
+
+  function paintShapeChoice (schema) {
+    let selected = $("#start-shape").val()
+    $("#start-shape").empty().append(schema.shapes.map(
+      shape => 
+        $("<option/>", Object.assign(
+          {value: shape.id},
+          shape.id === selected ? { selected: "selected" } : {}
+        )).append(localName(shape.id, Meta.shexc))
+    ))
+  }
+
   $("#shexj-to-form").on("click", evt => {
     let result = hljs.highlight("json", $(".shexj textarea").val(), true)
     $(".shexj .hljs").html(result.value)
@@ -339,10 +364,51 @@
       let schema = JSON.parse($(".shexj textarea").val())
       $("#form").replaceWith( // @@ assumes only one return
         new SchemaRenderer(schema).
-          paintShapeExpression(IRI_UserProfile)[0]
+          paintShapeExpression($("#start-shape").val())[0]
           .attr("id", "form")
           .addClass("panel")
       )
+    } catch (e) {
+      alert(e)
+    }
+  })
+
+  function paintNodeChoice (graph) {
+    let selected = $("#focus-node").val()
+    let nodes = graph.getQuads().reduce(
+      (nodes, q) => nodes.find(
+        known => known.equals(q.subject)
+      )
+        ? nodes
+        : nodes.concat(q.subject)
+      , []
+    ).map(
+      q => q.termType === "BlankNode"
+        ? "_:" + q.value
+        : q.value)
+    $("#focus-node").empty().append(nodes.map(
+      node => 
+        $("<option/>", Object.assign(
+          {value: node},
+          node.id === selected ? { selected: "selected" } : {}
+        )).append(localName(node, Meta.turtle))
+    ))
+  }
+
+  let Graph = null
+  $("#focus-node").on("focus", evt => {
+    let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
+    $(".turtle .hljs").html(result.value)
+    $(".turtle textarea").hide()
+    $(".turtle pre").show()
+    let nowDoing = "Parsing N3"
+    try {
+      parseTurtle().then(graph => {
+        paintNodeChoice(graph)
+        Graph = graph
+      }, error => {
+        alert(error)
+      })
     } catch (e) {
       alert(e)
     }
@@ -355,33 +421,50 @@
     $(".turtle pre").show()
     let nowDoing = "Parsing N3"
     try {
-      const parser = new N3.Parser({ documentIRI: location.href });
-      const store = new N3.Store()
-      parser.parse($(".turtle textarea").val(),
-        (error, quad, prefixes) => {
-          if (error)
-            throw error
-          if (quad)
-            store.addTriple(quad)
-          else {
-            let schema = JSON.parse($(".shexj textarea").val())
-            let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
-            nowDoing = "validating data"
-            let validator = shexCore.Validator.construct(as)
-            let db = shexCore.Util.makeN3DB(store)
-            let results = validator.validate(db, location.href + "#me", IRI_UserProfile)
-            $("#form").replaceWith( // @@ assumes only one return
-              new ValidationResultsRenderer(schema).
-                paintShapeExpression(results)[0]
-                .attr("id", "form")
-                .addClass("panel")
-            )
-          }
-        });
+      parseTurtle().then(graph => {
+        paintNodeChoice(graph)
+        let schema = JSON.parse($(".shexj textarea").val())
+        let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+        nowDoing = "validating data"
+        let validator = shexCore.Validator.construct(as)
+        let db = shexCore.Util.makeN3DB(graph)
+        let focus = $("#focus-node").val()
+        let results = validator.validate(db, focus, $("#start-shape").val())
+        $("#form").replaceWith( // @@ assumes only one return
+          new ValidationResultsRenderer(schema).
+            paintShapeExpression(results)[0]
+            .attr("id", "form")
+            .addClass("panel")
+        )
+      }, error => {
+        alert(error)
+      })
     } catch (e) {
       alert(e)
     }
   })
+
+ function parseTurtle () {
+   return new Promise((accept, reject) => {
+     const parser = new N3.Parser({ baseIRI: location.href });
+     const store = new N3.Store()
+     parser.parse(
+       $(".turtle textarea").val(),
+       (error, quad, prefixes) => {
+         if (error)
+           reject(error)
+         if (quad)
+           store.addQuad(quad)
+         else {
+           Meta.turtle.prefixes = prefixes
+           Meta.turtle.base = parser._base
+           accept(store)
+         }
+       }
+     )
+   })
+ }
+
 
   function defaultShExC () {
     return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
