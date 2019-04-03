@@ -325,12 +325,12 @@
   })
   $("#shexc-to-shexj").on("click", evt => {
     let shexcText = $(".shexc textarea").val()
-    let result = hljs.highlight("shexc", shexcText, true)
+    let result = hljs.highlight("json", shexcText, true)
     $(".shexc .hljs").html(result.value)
     $(".shexc textarea").hide()
     $(".shexc pre").show()
-    let parser = shexParser.construct(location.href)
     try {
+      let parser = shexParser.construct(location.href)
       let as = parser.parse($(".shexc textarea").val())
       Meta.shexc.prefixes = as.prefixes || {}
       Meta.shexc.base = as.base || location.href
@@ -355,13 +355,24 @@
     ))
   }
 
+  $("#start-shape").on("mousedown", evt => {
+    let shexj = $(".shexj textarea").val()
+    let result = hljs.highlight("json", shexj, true)
+    $(".shexj .hljs").html(result.value)
+    $(".shexj textarea").hide()
+    $(".shexj pre").show()
+    let nowDoing = "Painting schema choices"
+    paintShapeChoice(JSON.parse(shexj))
+  })
+
   $("#shexj-to-form").on("click", evt => {
-    let result = hljs.highlight("json", $(".shexj textarea").val(), true)
+    let shexj = $(".shexj textarea").val()
+    let result = hljs.highlight("json", shexj, true)
     $(".shexj .hljs").html(result.value)
     $(".shexj textarea").hide()
     $(".shexj pre").show()
     try {
-      let schema = JSON.parse($(".shexj textarea").val())
+      let schema = JSON.parse(shexj)
       $("#form").replaceWith( // @@ assumes only one return
         new SchemaRenderer(schema).
           paintShapeExpression($("#start-shape").val())[0]
@@ -390,13 +401,13 @@
       node => 
         $("<option/>", Object.assign(
           {value: node},
-          node.id === selected ? { selected: "selected" } : {}
-        )).append(localName(node, Meta.turtle))
+          node === selected ? { selected: "selected" } : {}
+        )).text(localName(node, Meta.turtle))
     ))
   }
 
   let Graph = null
-  $("#focus-node").on("focus", evt => {
+  $("#focus-node").on("mousedown", evt => {
     let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
     $(".turtle .hljs").html(result.value)
     $(".turtle textarea").hide()
@@ -430,12 +441,17 @@
         let db = shexCore.Util.makeN3DB(graph)
         let focus = $("#focus-node").val()
         let results = validator.validate(db, focus, $("#start-shape").val())
-        $("#form").replaceWith( // @@ assumes only one return
-          new ValidationResultsRenderer(schema).
-            paintShapeExpression(results)[0]
-            .attr("id", "form")
-            .addClass("panel")
-        )
+        if ("errors" in results) {
+          alert("failed to validate, see console")
+          console.warn(results)
+        } else {
+          $("#form").replaceWith( // @@ assumes only one return
+            new ValidationResultsRenderer(schema).
+              paintShapeExpression(results)[0]
+              .attr("id", "form")
+              .addClass("panel")
+          )
+        }
       }, error => {
         alert(error)
       })
@@ -446,7 +462,8 @@
 
  function parseTurtle () {
    return new Promise((accept, reject) => {
-     const parser = new N3.Parser({ baseIRI: location.href });
+     N3.Parser._resetBlankNodeIds()
+     const parser = new N3.Parser({ baseIRI: location.href })
      const store = new N3.Store()
      parser.parse(
        $(".turtle textarea").val(),
