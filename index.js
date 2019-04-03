@@ -1,3 +1,8 @@
+/* generate HTML forms from ShEx schemas and conformant data
+ *
+ * TODO: factor SchemaRenderer and ValidationResultsRenderer
+ */
+
 (function () {
   const IRI_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
   const IRI_RdfType = IRI_Rdf + "type"
@@ -18,6 +23,358 @@
     }
   }
 
+  // populate default ShExC
+  $(".shexc textarea").val(defaultShExC())
+  $(".turtle textarea").val(defaultTurtle())
+
+  // activate editor panel when clicked
+  $(".panel pre")
+    .hide()
+    .height($(".shexc textarea").height())
+    .on("click", evt => {
+      let panel = $(evt.target).parents(".panel")
+      panel.find("pre").hide()
+      panel.find("textarea").show()
+  })
+
+  // re-generate start shape select whenever clicked
+  $("#start-shape").on("mousedown", evt => {
+    parseShExJ().then(
+      schema => { },
+      alert
+    )
+  })
+
+  // re-generate focus node select whenever clicked
+  $("#focus-node").on("mousedown", evt => {
+    parseTurtle().then(
+      graph => { },
+      alert
+    )
+  })
+
+  // [→] button
+  $("#shexc-to-shexj").on("click", evt => {
+    parseShExC().then(
+      schema => {
+        let shexjText = JSON.stringify(schema, null, 2)
+        $(".shexj textarea").val(shexjText)
+      },
+      alert
+    )
+  })
+
+  // [↓] button
+  $("#shexj-to-form").on("click", evt => {
+    parseShExJ().then(
+      schema => {
+        $("#form").replaceWith( // @@ assumes only one return
+          new SchemaRenderer(schema).
+            paintShapeExpression($("#start-shape").val())[0]
+            .attr("id", "form")
+            .addClass("panel")
+        )
+      },
+      alert
+    )
+  })
+
+  // [←] button
+  $("#turtle-to-form").on("click", evt => {
+    parseTurtle().then(graph => {
+      let schema = JSON.parse($(".shexj textarea").val())
+      let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+      nowDoing = "validating data"
+      let validator = shexCore.Validator.construct(as)
+      let db = shexCore.Util.makeN3DB(graph)
+      let focus = $("#focus-node").val()
+      let results = validator.validate(db, focus, $("#start-shape").val())
+      if ("errors" in results) {
+        alert("failed to validate, see console")
+        console.warn(results)
+      } else {
+        $("#form").replaceWith( // @@ assumes only one return
+          new ValidationResultsRenderer(schema).
+            paintShapeExpression(results)[0]
+            .attr("id", "form")
+            .addClass("panel")
+        )
+      }
+    }, alert)
+  })
+
+  return
+
+  // node and shape selectors
+
+  function paintShapeChoice (schema) {
+    let selected = $("#start-shape").val()
+    $("#start-shape").empty().append(schema.shapes.map(
+      shape =>
+        $("<option/>", Object.assign(
+          {value: shape.id},
+          shape.id === selected ? { selected: "selected" } : {}
+        )).append(localName(shape.id, Meta.shexc))
+    ))
+  }
+
+  function paintNodeChoice (graph) {
+    let selected = $("#focus-node").val()
+    let nodes = graph.getQuads().reduce(
+      (nodes, q) => nodes.find(
+        known => known.equals(q.subject)
+      )
+        ? nodes
+        : nodes.concat(q.subject)
+      , []
+    ).map(
+      q => q.termType === "BlankNode"
+        ? "_:" + q.value
+        : q.value)
+    $("#focus-node").empty().append(nodes.map(
+      node =>
+        $("<option/>", Object.assign(
+          {value: node},
+          node === selected ? { selected: "selected" } : {}
+        )).text(localName(node, Meta.turtle))
+    ))
+  }
+
+  // parser wrappers
+
+  function parseShExC () {
+    let nowDoing = "Parsing ShExC"
+    return new Promise((accept, reject) => {
+    let shexcText = $(".shexc textarea").val()
+    try {
+      let parser = shexParser.construct(location.href)
+      let as = parser.parse($(".shexc textarea").val())
+      // keep track of prefixes for painting shape menu
+      Meta.shexc.prefixes = as.prefixes || {}
+      Meta.shexc.base = as.base || location.href
+      let schema = shexCore.Util.AStoShExJ(as)
+
+      // syntax highlight ShExC
+      let result = hljs.highlight("json", shexcText, true)
+      $(".shexc .hljs").html(result.value)
+      $(".shexc textarea").hide()
+      $(".shexc pre").show()
+      paintShapeChoice(schema)
+
+      accept(schema)
+    } catch (e) {
+      alert(e)
+    }
+    })
+  }
+
+  function parseShExJ () {
+    let nowDoing = "Parsing ShExJ"
+    return new Promise((accept, reject) => {
+      let shexj = $(".shexj textarea").val()
+      try {
+        let schema = JSON.parse(shexj)
+
+        // syntax highlight ShExJ
+        let result = hljs.highlight("json", shexj, true)
+        $(".shexj .hljs").html(result.value)
+        $(".shexj textarea").hide()
+        $(".shexj pre").show()
+
+        paintShapeChoice(schema)
+
+        accept(schema)
+      } catch (e) {
+        reject(e)
+      }
+    })
+  }
+
+  function parseTurtle () {
+    let nowDoing = "Parsing N3"
+    return new Promise((accept, reject) => {
+      N3.Parser._resetBlankNodeIds()
+      const parser = new N3.Parser({ baseIRI: location.href })
+      const store = new N3.Store()
+      parser.parse(
+        $(".turtle textarea").val(),
+        (error, quad, prefixes) => {
+          if (error)
+            reject(error)
+          if (quad)
+            store.addQuad(quad)
+          else {
+            // keep track of prefixes for painting focus menu
+            Meta.turtle.prefixes = prefixes
+            Meta.turtle.base = parser._base
+            paintNodeChoice(store)
+
+            // syntax highlight Turtle
+            let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
+            $(".turtle .hljs").html(result.value)
+            $(".turtle textarea").hide()
+            $(".turtle pre").show()
+
+            accept(store)
+          }
+        }
+      )
+    })
+  }
+
+  // convenience functions
+
+  function findLabel (shexpr) {
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_RdfsLabel)
+  }
+
+  function localName (iri, meta) {
+    let p = Object.keys(meta.prefixes).find(p => iri.startsWith(meta.prefixes[p]))
+    if (p)
+      return p + ":" + iri.substr(meta.prefixes[p].length)
+    return "<" + (iri.startsWith(meta.base) ? iri.substr(meta.base.length) : iri) + ">"
+  }
+
+  // Renderers
+
+  // Walk ShExJ to generate a form.
+  function SchemaRenderer (schema) {
+    validator = shexCore.Validator.construct(
+      // JtoAS modifies original; +1 to working with native ShExJ.
+      shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+    )
+
+    return {
+      findShapeExpression: findShapeExpression,
+
+      // get the painters in here.
+      paintShapeExpression: paintShapeExpression,
+      paintShape: paintShape,
+      paintNodeConstraint: paintNodeConstraint,
+      paintTripleExpression: paintTripleExpression,
+      paintTripleConstraint: paintTripleConstraint,
+    }
+
+    function findShapeExpression (goal) {
+      return schema.shapes.find(se => se.id === goal)
+    }
+
+    /* All paint* functions return an array of jquery nodes.
+     */
+
+    function paintShapeExpression (shexpr) {
+      if (typeof shexpr === "string")
+        return paintShapeExpression(findShapeExpression(shexpr))
+      switch (shexpr.type) {
+      case "Shape":
+        return paintShape(shexpr)
+      case "NodeConstraint":
+        return paintNodeConstraint(shexpr)
+      default: throw Error("paintShapeExpression(" + shexpr.type + ")")
+      }
+    }
+
+    function paintShape (shexpr) {
+      let div = $("<div/>", { class: "form" })
+      let label = findLabel(shexpr)
+      if (label)
+        div.append($("<h3>").text(label.object.value))
+      let ul = $("<ul/>").append(paintTripleExpression(shexpr.expression))
+      div.append(ul)
+      return [div]
+    }
+
+    function paintNodeConstraint (nc) {
+      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
+        throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
+
+      function validatedInput (makeTerm) {
+        return $("<input/>").on("blur", evt => {
+          let jElt = $(evt.target)
+          let lexicalValue = jElt.val()
+          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
+          if ("errors" in res) {
+            console.warn(res)
+            jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
+          } else {
+            jElt.removeClass("error").removeAttr("title")
+          }
+        })
+      }
+
+      if ("datatype" in nc)
+        switch (nc.datatype) {
+        case IRI_XsdString:
+        case IRI_XsdInteger:
+          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
+        default:
+          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
+        }
+
+      if ("nodeKind" in nc)
+        switch (nc.nodeKind) {
+        case "iri" : 
+          return [validatedInput(s => s)] // JSON-LD IRIs are expressed directly as strings.
+        default:
+          throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
+        }
+
+      if ("values" in nc)
+        return [$("<select/>").append(nc.values.map(v => {
+          let vStr = typeof v === "object"
+              ? v.value      // a string
+              : localName(v, Meta.shexc) // an IRI
+          return $("<option/>", {value: vStr}).text(vStr)
+        }))]
+
+      throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
+    }
+
+    function paintTripleExpression (texpr) {
+      if (typeof texpr === "string")
+        return paintTripleExpression(findTripleExpression(texpr)) // @@ later
+      switch (texpr.type) {
+      case "TripleConstraint":
+        return paintTripleConstraint(texpr)
+      case "EachOf":
+        return texpr.expressions.reduce(
+          (acc, nested) =>
+            acc.concat(paintTripleExpression (nested)), []
+        )
+      case "OneOf":
+        return $("<li/>", { class: "disjunction" }).append(
+          $("<ul/>").append(
+            texpr.expressions.reduce(
+              (acc, e, idx) =>
+                (idx > 0
+                 ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
+                 : acc
+                ).concat(paintTripleExpression(e)),
+              []
+            )
+          )
+        )
+      default: throw Error("paintTripleExpression(" + texpr.type + ")")
+      }
+    }
+
+    function paintTripleConstraint (tc) {
+      let label = findLabel(tc);
+      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
+      if (typeof tc.max !== "undefined" && tc.max !== 1)
+        ret.append([" ", $("<span/>", { class: "add" }).text("+")])
+      if (tc.valueExpr) {
+        let valueHtml = paintShapeExpression(tc.valueExpr)
+        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
+        if (ro)
+          valueHtml.forEach(h => h.attr("readonly", "readonly"))
+        ret.append(valueHtml)
+      }
+      return [ret]
+    }
+  }
+
+  // Walk a validation result to generate a form.
   function ValidationResultsRenderer (schema) {
     return {
       // get the painters in here.
@@ -165,324 +522,7 @@
     }
   }
 
-  function SchemaRenderer (schema) {
-    validator = shexCore.Validator.construct(
-      // JtoAS modifies original; +1 to working with native ShExJ.
-      shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
-    )
-
-    return {
-      findShapeExpression: findShapeExpression,
-
-      // get the painters in here.
-      paintShapeExpression: paintShapeExpression,
-      paintShape: paintShape,
-      paintNodeConstraint: paintNodeConstraint,
-      paintTripleExpression: paintTripleExpression,
-      paintTripleConstraint: paintTripleConstraint,
-    }
-
-    function findShapeExpression (goal) {
-      return schema.shapes.find(se => se.id === goal)
-    }
-
-    /* All paint* functions return an array of jquery nodes.
-     */
-
-    function paintShapeExpression (shexpr) {
-      if (typeof shexpr === "string")
-        return paintShapeExpression(findShapeExpression(shexpr))
-      switch (shexpr.type) {
-      case "Shape":
-        return paintShape(shexpr)
-      case "NodeConstraint":
-        return paintNodeConstraint(shexpr)
-      default: throw Error("paintShapeExpression(" + shexpr.type + ")")
-      }
-    }
-
-    function paintShape (shexpr) {
-      let div = $("<div/>", { class: "form" })
-      let label = findLabel(shexpr)
-      if (label)
-        div.append($("<h3>").text(label.object.value))
-      let ul = $("<ul/>").append(paintTripleExpression(shexpr.expression))
-      div.append(ul)
-      return [div]
-    }
-
-    function paintNodeConstraint (nc) {
-      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
-        throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
-
-      function validatedInput (makeTerm) {
-        return $("<input/>").on("blur", evt => {
-          let jElt = $(evt.target)
-          let lexicalValue = jElt.val()
-          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
-          if ("errors" in res) {
-            console.warn(res)
-            jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
-          } else {
-            jElt.removeClass("error").removeAttr("title")
-          }
-        })
-      }
-
-      if ("datatype" in nc)
-        switch (nc.datatype) {
-        case IRI_XsdString:
-        case IRI_XsdInteger:
-          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
-        default:
-          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
-        }
-
-      if ("nodeKind" in nc)
-        switch (nc.nodeKind) {
-        case "iri" : 
-          return [validatedInput(s => s)] // JSON-LD IRIs are expressed directly as strings.
-        default:
-          throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
-        }
-
-      if ("values" in nc)
-        return [$("<select/>").append(nc.values.map(v => {
-          let vStr = typeof v === "object"
-              ? v.value      // a string
-              : localName(v, Meta.shexc) // an IRI
-          return $("<option/>", {value: vStr}).text(vStr)
-        }))]
-
-      throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
-    }
-
-    function paintTripleExpression (texpr) {
-      if (typeof texpr === "string")
-        return paintTripleExpression(findTripleExpression(texpr)) // @@ later
-      switch (texpr.type) {
-      case "TripleConstraint":
-        return paintTripleConstraint(texpr)
-      case "EachOf":
-        return texpr.expressions.reduce(
-          (acc, nested) =>
-            acc.concat(paintTripleExpression (nested)), []
-        )
-      case "OneOf":
-        return $("<li/>", { class: "disjunction" }).append(
-          $("<ul/>").append(
-            texpr.expressions.reduce(
-              (acc, e, idx) =>
-                (idx > 0
-                 ? acc.concat($("<li/>", {class: "separator"}).append("<hr/>"))
-                 : acc
-                ).concat(paintTripleExpression(e)),
-              []
-            )
-          )
-        )
-      default: throw Error("paintTripleExpression(" + texpr.type + ")")
-      }
-    }
-
-    function paintTripleConstraint (tc) {
-      let label = findLabel(tc);
-      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
-      if (typeof tc.max !== "undefined" && tc.max !== 1)
-        ret.append([" ", $("<span/>", { class: "add" }).text("+")])
-      if (tc.valueExpr) {
-        let valueHtml = paintShapeExpression(tc.valueExpr)
-        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
-        if (ro)
-          valueHtml.forEach(h => h.attr("readonly", "readonly"))
-        ret.append(valueHtml)
-      }
-      return [ret]
-    }
-  }
-
-  function findLabel (shexpr) {
-    return (shexpr.annotations || []).find(a => a.predicate === IRI_RdfsLabel)
-  }
-
-  function localName (iri, meta) {
-    let p = Object.keys(meta.prefixes).find(p => iri.startsWith(meta.prefixes[p]))
-    if (p)
-      return p + ":" + iri.substr(meta.prefixes[p].length)
-    return "<" + (iri.startsWith(meta.base) ? iri.substr(meta.base.length) : iri) + ">"
-  }
-
-  // populate default ShExC
-  $(".shexc textarea").val(defaultShExC())
-  $(".turtle textarea").val(defaultTurtle())
-  $(".panel pre")
-    .hide()
-    .height($(".shexc textarea").height())
-    .on("click", evt => {
-      let panel = $(evt.target).parents(".panel")
-      panel.find("pre").hide()
-      panel.find("textarea").show()
-  })
-  $("#shexc-to-shexj").on("click", evt => {
-    let shexcText = $(".shexc textarea").val()
-    let result = hljs.highlight("json", shexcText, true)
-    $(".shexc .hljs").html(result.value)
-    $(".shexc textarea").hide()
-    $(".shexc pre").show()
-    try {
-      let parser = shexParser.construct(location.href)
-      let as = parser.parse($(".shexc textarea").val())
-      Meta.shexc.prefixes = as.prefixes || {}
-      Meta.shexc.base = as.base || location.href
-      let schema = shexCore.Util.AStoShExJ(as)
-      let shexjText = JSON.stringify(schema, null, 2)
-      $(".shexj textarea").val(shexjText)
-      paintShapeChoice(schema)
-      // $("#shexj-to-form").click() // -- causes .shexj to blank when clicked.
-    } catch (e) {
-      alert(e)
-    }
-  })
-
-  function paintShapeChoice (schema) {
-    let selected = $("#start-shape").val()
-    $("#start-shape").empty().append(schema.shapes.map(
-      shape => 
-        $("<option/>", Object.assign(
-          {value: shape.id},
-          shape.id === selected ? { selected: "selected" } : {}
-        )).append(localName(shape.id, Meta.shexc))
-    ))
-  }
-
-  $("#start-shape").on("mousedown", evt => {
-    let shexj = $(".shexj textarea").val()
-    let result = hljs.highlight("json", shexj, true)
-    $(".shexj .hljs").html(result.value)
-    $(".shexj textarea").hide()
-    $(".shexj pre").show()
-    let nowDoing = "Painting schema choices"
-    paintShapeChoice(JSON.parse(shexj))
-  })
-
-  $("#shexj-to-form").on("click", evt => {
-    let shexj = $(".shexj textarea").val()
-    let result = hljs.highlight("json", shexj, true)
-    $(".shexj .hljs").html(result.value)
-    $(".shexj textarea").hide()
-    $(".shexj pre").show()
-    try {
-      let schema = JSON.parse(shexj)
-      $("#form").replaceWith( // @@ assumes only one return
-        new SchemaRenderer(schema).
-          paintShapeExpression($("#start-shape").val())[0]
-          .attr("id", "form")
-          .addClass("panel")
-      )
-    } catch (e) {
-      alert(e)
-    }
-  })
-
-  function paintNodeChoice (graph) {
-    let selected = $("#focus-node").val()
-    let nodes = graph.getQuads().reduce(
-      (nodes, q) => nodes.find(
-        known => known.equals(q.subject)
-      )
-        ? nodes
-        : nodes.concat(q.subject)
-      , []
-    ).map(
-      q => q.termType === "BlankNode"
-        ? "_:" + q.value
-        : q.value)
-    $("#focus-node").empty().append(nodes.map(
-      node => 
-        $("<option/>", Object.assign(
-          {value: node},
-          node === selected ? { selected: "selected" } : {}
-        )).text(localName(node, Meta.turtle))
-    ))
-  }
-
-  let Graph = null
-  $("#focus-node").on("mousedown", evt => {
-    let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
-    $(".turtle .hljs").html(result.value)
-    $(".turtle textarea").hide()
-    $(".turtle pre").show()
-    let nowDoing = "Parsing N3"
-    try {
-      parseTurtle().then(graph => {
-        paintNodeChoice(graph)
-        Graph = graph
-      }, error => {
-        alert(error)
-      })
-    } catch (e) {
-      alert(e)
-    }
-  })
-
-  $("#turtle-to-form").on("click", evt => {
-    let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
-    $(".turtle .hljs").html(result.value)
-    $(".turtle textarea").hide()
-    $(".turtle pre").show()
-    let nowDoing = "Parsing N3"
-    try {
-      parseTurtle().then(graph => {
-        paintNodeChoice(graph)
-        let schema = JSON.parse($(".shexj textarea").val())
-        let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
-        nowDoing = "validating data"
-        let validator = shexCore.Validator.construct(as)
-        let db = shexCore.Util.makeN3DB(graph)
-        let focus = $("#focus-node").val()
-        let results = validator.validate(db, focus, $("#start-shape").val())
-        if ("errors" in results) {
-          alert("failed to validate, see console")
-          console.warn(results)
-        } else {
-          $("#form").replaceWith( // @@ assumes only one return
-            new ValidationResultsRenderer(schema).
-              paintShapeExpression(results)[0]
-              .attr("id", "form")
-              .addClass("panel")
-          )
-        }
-      }, error => {
-        alert(error)
-      })
-    } catch (e) {
-      alert(e)
-    }
-  })
-
- function parseTurtle () {
-   return new Promise((accept, reject) => {
-     N3.Parser._resetBlankNodeIds()
-     const parser = new N3.Parser({ baseIRI: location.href })
-     const store = new N3.Store()
-     parser.parse(
-       $(".turtle textarea").val(),
-       (error, quad, prefixes) => {
-         if (error)
-           reject(error)
-         if (quad)
-           store.addQuad(quad)
-         else {
-           Meta.turtle.prefixes = prefixes
-           Meta.turtle.base = parser._base
-           accept(store)
-         }
-       }
-     )
-   })
- }
-
-
+  // default text for <inputarea/>s
   function defaultShExC () {
     return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
