@@ -4,6 +4,7 @@
   const IRI_RdfType = IRI_Rdf + "type"
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
   const IRI_XsdString = IRI_Xsd + "string"
+  const IRI_XsdInteger = IRI_Xsd + "integer"
   const IRI_RdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label"
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
@@ -71,6 +72,7 @@
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
+        case IRI_XsdInteger:
           return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype).val(value.object.value)]
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
@@ -222,6 +224,7 @@
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
+        case IRI_XsdInteger:
           return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
@@ -400,6 +403,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   vc:hasAddress @<#vcard_street-address> * ;
   vc:organization-name xsd:string ?
     // rdfs:label "company" ;
+  vc:someInt xsd:integer ;
 } // rdfs:label "User Profile"
 
 <#vcard_street-address> CLOSED {
@@ -450,6 +454,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
     vc:country-name "France" ;
     vc:postal-code "63000"
   ] ;
-  vc:organization-name "慶應義塾" .`
+  vc:organization-name "慶應義塾" ;
+  vc:someInt 7 .`
   }
 })()
