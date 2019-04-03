@@ -137,20 +137,21 @@
 
     function paintTripleConstraint (tc) {
       let label = findLabel(tc);
-      return tc.solutions.map(
-        soln => {
       let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate))
       // if (typeof tc.max !== "undefined" && tc.max !== 1)
       //   ret.append([" ", $("<span/>", { class: "add" }).text("+")])
-      if (tc.valueExpr) {
-        let valueHtml = paintShapeExpression(tc.valueExpr, soln)
-        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
-        if (ro)
-          valueHtml.forEach(h => h.attr("readonly", "readonly"))
-        ret.append(valueHtml)
-      }
-          return ret
-        })
+      return [ret.append(tc.solutions.reduce(
+        (acc, soln) => {
+          if (tc.valueExpr) {
+            let valueHtml = paintShapeExpression(tc.valueExpr, soln)
+            let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
+            if (ro)
+              valueHtml.forEach(h => h.attr("readonly", "readonly"))
+            return acc.concat(valueHtml)
+          } else {
+            throw Error("PF")
+          }
+        }, []))]
     }
   }
 
