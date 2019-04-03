@@ -229,6 +229,8 @@
   }
 
   function localName (iri, meta) {
+    if (iri.startsWith("_:"))
+      return iri
     let p = Object.keys(meta.prefixes).find(p => iri.startsWith(meta.prefixes[p]))
     if (p)
       return p + ":" + iri.substr(meta.prefixes[p].length)
