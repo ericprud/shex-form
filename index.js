@@ -24,20 +24,20 @@
   }
   Interfaces = [
     // { label: "local",
-    //   link: "http://localhost/shexSpec/shex.js/doc/shex-simple.html?" },
+    //   link: "http://localhost/tmp/checkouts/shexSpec/shex.js/packages/shex-webapp/doc/shex-simple.html?" },
     { label: "js", name: "shex.js",
-      link: "http://rawgit.com/shexSpec/shex.js/extends/doc/shex-simple.html?" },
+      link: "http://rawgit.com/shexSpec/shex.js/extends/packages/shex-webapp/doc/shex-simple.html?" },
     { label: "scala", name: "rdfshape",
       link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" }
   ];
 
-  // populate default ShExC
+  // populate inputs with defaults
   $(".shexc textarea").val(defaultShExC())
   $(".turtle textarea").val(defaultTurtle())
+  $(".shexj pre").hide()
   Promise.all([parseShExC(), parseTurtle()]).then(both => {
-    paintShapeChoice(both[0])
-    paintNodeChoice(both[1])
     updateTryItLink()
+    clearCurrentForm()
   })
 
   // activate editor panel when clicked
@@ -47,44 +47,33 @@
       let panel = $(evt.target).parents(".panel")
       panel.find("pre").hide()
       panel.find("textarea").show()
+      clearCurrentForm()
   })
 
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
-    parseShExJ().then(
-      paintShapeChoice,
-      alert
-    )
-  })
+    getSchemaPromise().catch(alert)
+  }).on("change", clearCurrentForm)
 
   // re-generate focus node select whenever clicked
   $("#focus-node").on("mousedown", evt => {
-    parseTurtle().then(
-      paintNodeChoice,
-      alert
-    )
-  })
+    parseTurtle().catch(alert)
+  }).on("change", clearCurrentForm)
 
   // [→] button
   $("#shexc-to-shexj").on("click", evt => {
-    parseShExC().then(
-      schema => {
-        paintShapeChoice(schema)
-        updateTryItLink()
-        let shexjText = JSON.stringify(schema, null, 2)
-        $(".shexj textarea").val(shexjText)
-      },
-      alert
-    )
+    $(".shexj textarea").val("")
+    getSchemaPromise().catch(alert)
   })
 
   // [↙] button
   $("#shexj-to-form").on("click", evt => {
-    parseShExJ().then(
+    // get schema from ShExJ or ShExC
+    let schemaP = getSchemaPromise()
+    schemaP.then(
       schema => {
-        paintShapeChoice(schema)
         updateTryItLink()
-        $("#form").replaceWith( // @@ assumes only one return
+        $("#form").empty().append( // @@ assumes only one return
           new SchemaRenderer(schema).
             paintShapeExpression($("#start-shape").val())[0]
             .attr("id", "form")
@@ -97,10 +86,12 @@
 
   // [←] button
   $("#turtle-to-form").on("click", evt => {
-    parseTurtle().then(graph => {
-      paintNodeChoice(graph)
+    let schemaP = getSchemaPromise()
+    let graphP = parseTurtle()
+
+    Promise.all([schemaP, graphP]).then(both => {
+      let [schema, graph] = both
       updateTryItLink()
-      let schema = JSON.parse($(".shexj textarea").val())
       let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
       nowDoing = "validating data"
       let validator = shexCore.Validator.construct(as)
@@ -111,7 +102,7 @@
         alert("failed to validate, see console")
         console.warn(results)
       } else {
-        $("#form").replaceWith( // @@ assumes only one return
+        $("#form").empty().append( // @@ assumes only one return
           new ValidationResultsRenderer(schema).
             paintShapeExpression(results)[0]
             .attr("id", "form")
@@ -169,6 +160,7 @@
           shape.id === selected ? { selected: "selected" } : {}
         )).append(localName(shape.id, Meta.shexc))
     ))
+    return schema
   }
 
   function paintNodeChoice (graph) {
@@ -191,6 +183,13 @@
           node === selected ? { selected: "selected" } : {}
         )).text(localName(node, Meta.turtle))
     ))
+    return graph
+  }
+
+  function clearCurrentForm () {
+    $("#form").empty().append(" no generated form", $("<br/>"),
+                              "   ↙ to create from schema", $("<br/>"),
+                              "   ← to create from data")
   }
 
   // parser wrappers
@@ -206,6 +205,7 @@
       Meta.shexc.prefixes = as.prefixes || {}
       Meta.shexc.base = as.base || location.href
       let schema = shexCore.Util.AStoShExJ(as)
+      paintShapeChoice(schema)
 
       // syntax highlight ShExC
       let result = hljs.highlight("json", shexcText, true)
@@ -220,12 +220,27 @@
     })
   }
 
+  function getSchemaPromise () {
+    return $(".shexj textarea").val().length
+      ? parseShExJ()
+      : parseShExC().then(renderShExJ)
+  }
+
+  function renderShExJ (schema) {
+    updateTryItLink()
+    let shexjText = JSON.stringify(schema, null, 2)
+    $(".shexj pre").hide()
+    $(".shexj textarea").val(shexjText).show()
+    return schema
+  }
+
   function parseShExJ () {
     let nowDoing = "Parsing ShExJ"
     return new Promise((accept, reject) => {
       let shexj = $(".shexj textarea").val()
       try {
         let schema = JSON.parse(shexj)
+        paintShapeChoice(schema)
 
         // syntax highlight ShExJ
         let result = hljs.highlight("json", shexj, true)
@@ -245,18 +260,19 @@
     return new Promise((accept, reject) => {
       N3.Parser._resetBlankNodeIds()
       const parser = new N3.Parser({ baseIRI: location.href })
-      const store = new N3.Store()
+      const graph = new N3.Store()
       parser.parse(
         $(".turtle textarea").val(),
         (error, quad, prefixes) => {
           if (error)
             reject(error)
           if (quad)
-            store.addQuad(quad)
+            graph.addQuad(quad)
           else {
             // keep track of prefixes for painting focus menu
             Meta.turtle.prefixes = prefixes
             Meta.turtle.base = parser._base
+            paintNodeChoice(graph)
 
             // syntax highlight Turtle
             let result = hljs.highlight("shexc", $(".turtle textarea").val(), true)
@@ -264,7 +280,7 @@
             $(".turtle textarea").hide()
             $(".turtle pre").show()
 
-            accept(store)
+            accept(graph)
           }
         }
       )
