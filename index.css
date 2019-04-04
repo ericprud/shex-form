@@ -25,7 +25,7 @@
 .disjunction999 { display: inline-block; border: thick solid #ddd; margin-left: -1.8em; border-left-style: dashed; border-right: none; }
 .disjunction > ul li { margin-left: -1em; }
 .add { color: darkgreen; }
-.error { border: thin solid red; }
+.form .error { border: thin solid red; }
 .top > * { display: inline; height: 1.5em; padding-right: .5em; }
 h1 { margin: 0; }
 .form input, .form select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }

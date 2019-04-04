@@ -290,7 +290,7 @@
 
   // Walk ShExJ to generate a form.
   function SchemaRenderer (schema) {
-    validator = shexCore.Validator.construct(
+    const validator = shexCore.Validator.construct(
       // JtoAS modifies original; +1 to working with native ShExJ.
       shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
     )
@@ -427,6 +427,11 @@
 
   // Walk a validation result to generate a form.
   function ValidationResultsRenderer (schema) {
+    const validator = shexCore.Validator.construct(
+      // JtoAS modifies original; +1 to working with native ShExJ.
+      shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+    )
+
     return {
       // get the painters in here.
       paintShapeExpression: paintShapeExpression,
