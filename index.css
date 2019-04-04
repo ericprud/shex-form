@@ -1,0 +1,68 @@
+.guts {
+    width: 90%;
+    height: 90%;
+    display: grid;
+    grid-gap: 2% .5%;
+    grid-template-columns: 52% 3% 52%;
+    grid-template-rows: 48% 2% 48%;
+}
+.panel { width: 100%; border-width: thin; border-style: solid; }
+.panel h2 { text-align: center; margin: 0; }
+.panel textarea { height: 40%; width: 100%; border: none; }
+.panel pre { overflow: scroll; margin: 0; }
+#shexc-to-shexj { position: relative; top: 50%; }
+#shexj-to-form {  }
+#turtle-to-form { position: relative; top: 50%; }
+#start-shape-span { float: right; }
+#focus-node-span {  }
+.shexc { border-color: blue; }
+.shexj { border-color: green; }
+.form { border: thin solid black; display: table; }
+.form h3 { margin: 0; padding-left: .3em; }
+.form + .form { margin-top: .5em; }
+.separator { list-style-type: none; margin-left: -1.1em; }
+.disjunction { display: inline-block; border-left: medium solid grey; margin-left: -1.8em; }
+.disjunction999 { display: inline-block; border: thick solid #ddd; margin-left: -1.8em; border-left-style: dashed; border-right: none; }
+.disjunction > ul li { margin-left: -1em; }
+.add { color: darkgreen; }
+.error { border: thin solid red; }
+.top > * { display: inline; height: 1.5em; padding-right: .5em; }
+h1 { margin: 0; }
+.form input, .form select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }
+input[readonly] { background-color: lightgrey; }
+ul { margin: 0; }
+li { line-height: 2em; }
+hr { /* margin-left: -1.8em; */ border:none; border-top:thin dashed #ddd; height:1px; }
+
+.tryit {
+    text-decoration: none; font: menu;
+    display: inline-block; padding: 2px 8px;
+    background: ButtonFace; color: ButtonText;
+    border-style: solid; border-width: 2px;
+    border-color: ButtonHighlight ButtonShadow ButtonShadow ButtonHighlight;
+    padding: 0 .2em;
+}
+.tryit:active {
+    border-color: ButtonShadow ButtonHighlight ButtonHighlight ButtonShadow;
+}
+.tryable {
+    position: relative;
+    z-index: 1;
+}
+.tryit {
+    position: absolute;
+    z-index: 3; /* put .gold-box above .green-box and .dashed-box */
+    //right: -5px;
+    //top: -1.5ex;
+    right: 0;
+    top: -0.5ex;
+    font-size: small;
+}
+.tryit a {
+    color: #00e;
+    border: none;
+}
+
+.tryit a:visited {
+    color: #551A8B;
+}

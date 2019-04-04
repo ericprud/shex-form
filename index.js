@@ -22,14 +22,26 @@
       base: location.href
     }
   }
+  Interfaces = [
+    // { label: "local",
+    //   link: "http://localhost/shexSpec/shex.js/doc/shex-simple.html?" },
+    { label: "js", name: "shex.js",
+      link: "http://rawgit.com/shexSpec/shex.js/extends/doc/shex-simple.html?" },
+    { label: "scala", name: "rdfshape",
+      link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" }
+  ];
 
   // populate default ShExC
   $(".shexc textarea").val(defaultShExC())
   $(".turtle textarea").val(defaultTurtle())
+  Promise.all([parseShExC(), parseTurtle()]).then(both => {
+    paintShapeChoice(both[0])
+    paintNodeChoice(both[1])
+    updateTryItLink()
+  })
 
   // activate editor panel when clicked
   $(".panel pre")
-    .hide()
     .height($(".shexc textarea").height())
     .on("click", evt => {
       let panel = $(evt.target).parents(".panel")
@@ -58,6 +70,7 @@
     parseShExC().then(
       schema => {
         paintShapeChoice(schema)
+        updateTryItLink()
         let shexjText = JSON.stringify(schema, null, 2)
         $(".shexj textarea").val(shexjText)
       },
@@ -65,11 +78,12 @@
     )
   })
 
-  // [↓] button
+  // [↙] button
   $("#shexj-to-form").on("click", evt => {
     parseShExJ().then(
       schema => {
         paintShapeChoice(schema)
+        updateTryItLink()
         $("#form").replaceWith( // @@ assumes only one return
           new SchemaRenderer(schema).
             paintShapeExpression($("#start-shape").val())[0]
@@ -85,6 +99,7 @@
   $("#turtle-to-form").on("click", evt => {
     parseTurtle().then(graph => {
       paintNodeChoice(graph)
+      updateTryItLink()
       let schema = JSON.parse($(".shexj textarea").val())
       let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
       nowDoing = "validating data"
@@ -107,6 +122,41 @@
   })
 
   return
+
+  // try it link
+
+  function updateTryItLink () {
+    const span = $(".tryit")
+    const parms = getShExApiParms(span)
+    span.empty().append(
+      Interfaces.reduce(
+        (toAdd, iface, idx) => toAdd.concat(
+          (idx === 0 ?
+           $("<span/>").text("try it: ") :
+           " | "),
+          $("<a/>", { href: createLink(iface.link, parms) }).text(iface.label),
+        ), []
+      )
+    )
+  }
+
+  function getShExApiParms (span) {
+    const schema = $(".shexc textarea").val().replace(/^\n +/, "")
+    const data = $(".turtle textarea").val().replace(/^\n +/, "")
+    const shapeMap = localName($("#focus-node").val(), Meta.turtle)
+          + "@"
+          + localName($("#start-shape").val(), Meta.shexc)
+    return { schema, data, shapeMap }
+  }
+
+  function createLink (base, shExApiParms) {
+    return base + [
+      "interface=minimal",
+      "schema=" + encodeURIComponent(shExApiParms.schema),
+      "data=" + encodeURIComponent(shExApiParms.data),
+      "shape-map=" + encodeURIComponent(shExApiParms.shapeMap)
+    ].join("&");
+  }
 
   // node and shape selectors
 
@@ -578,7 +628,6 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX : <http://janeirodigital.com/layout#>
 PREFIX solid: <http://www.w3.org/ns/solid/terms#>
-
 
 <#me>
   solid:webid <#webid> ;

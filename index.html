@@ -2,47 +2,22 @@
   <head>
     <title>harness for ShExC forms</title>
     <link rel="stylesheet" href="https://highlightjs.org/static/demo/styles/github.css"/><!-- docco foundation github gruvbox-light isbl-editor-light purebasic qtcreator_light xcode -->
-    <style type="text/css">
-      .panel { float: left; }
-      .panel { width: 45%; border-width: thin; border-style: solid; margin: 1em; }
-      .panel.form { width: 43%; }
-      .panel h2 { text-align: center; margin: 0; }
-      .panel textarea { height: 40%; width: 100%; padding: .5em; border: none; }
-      .panel pre { overflow: scroll; margin: 0; }
-      .inter-panel { float:left; height: 44%; position: relative; }
-      #shexc-to-shexj { position: relative; top: 50%; }
-      #shexj-to-form { position: relative; left: 24%; margin-bottom: 1em; }
-      #start-shape-span { position: relative; left: 22%; }
-      #focus-node-span { position: relative; left: 25%; }
-      .shexc { border-color: blue; }
-      .shexj { border-color: green; }
-      .form { border: thin solid black; display: table; padding-right: 2em; }
-      .form h3 { margin: 0; padding-left: .3em; }
-      .form + .form { margin-top: .5em; }
-      .separator { list-style-type: none; margin-left: -1.1em; }
-      .disjunction { display: inline-block; border-left: medium solid grey; margin-left: -1.8em; }
-      .disjunction999 { display: inline-block; border: thick solid #ddd; margin-left: -1.8em; border-left-style: dashed; border-right: none; }
-      .disjunction > ul li { margin-left: -1em; }
-      .add { color: darkgreen; }
-      .error { border: thin solid red; }
-      h1 { margin: 0; }
-      input, select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; width: 14em; }
-      input[readonly] { background-color: lightgrey; }
-      ul { margin: 0; }
-      li { line-height: 2em; }
-      hr { /* margin-left: -1.8em; */ border:none; border-top:thin dashed #ddd; height:1px; }
-
-    </style>
+    <link rel="stylesheet" type="text/css" href="index.css"/>
   </head>
   <body>
-    <h1>harness for ShExC forms</h1>
-    <div id="top">
+    <div class="top">
+      <img src="//www.w3.org/2015/ShEx-bones-min.svg" alt="ShEx logo"/>
+      <!-- <img src="//shex.io/logo/2.1/ShEx-Logo.svg" alt="ShEx logo"/> -->
+      <h1>harness for ShExC forms</h1>
+      <span class="tryit"/>
+    </div>
+    <div class="guts">
       <div class="panel shexc">
         <h2>ShExC</h2>
         <textarea></textarea>
         <pre><code class="hljs">...</code></pre>
       </div>
-      <div class="inter-panel">
+      <div>
         <button id="shexc-to-shexj">→</button>
       </div>
       <div class="panel shexj">
@@ -50,64 +25,24 @@
         <textarea></textarea>
         <pre><code class="hljs">...</code></pre>
       </div>
-      <div id="shexj-to-form-parameters" style="clear: both;">
-        <span id="start-shape-span">start shape: <select id="start-shape"></select></span>
-        <button id="shexj-to-form">↓</button>
-        <!-- <span>start shape: <input value="value"/></span> -->
-        <span id="focus-node-span">focus node: <select id="focus-node"></select></span>
+      <div>
+      <span id="start-shape-span">start shape: <select id="start-shape"></select></span>
       </div>
-      <div id="bottom" style="clear:both; ">
-        <div id="form" class="panel form">no form yet</div>
-        <div class="inter-panel">
-          <button id="turtle-to-form">←</button>
-        </div>
-        <div class="panel turtle">
-          <h2>Turtle</h2>
-          <textarea></textarea>
-          <pre><code class="hljs">...</code></pre>
-        </div>
+      <div>
+      <button id="shexj-to-form">↙</button>
       </div>
-      <div style="clear: both; "></div>
-    <!-- goal structure:
-    <div class="form panel">
-      <h3>User Profile</h3>
-      <ul>
-        <li>profile webid<input readonly="readonly"></input></li>
-        <li class="disjunction"><ul>
-          <li>foaf:name <input></input></li>
-          <li class="separator"><hr/></li>
-          <li>foaf:givenName<input></input></li>
-          <li>foaf:familyName<input></input></li>
-        </ul></li>
-        <li>foaf:homepage<input></input></li>
-        <li>vcard:hasAddress <span class="add">+</span>
-        <div class="form">
-          <h3>Address</h3>
-          <ul>
-            <li>street<input></input></li>
-            <li class="disjunction"><ul>
-              <li>vc:locality<input></input></li>
-              <li class="separator"><hr/></li>
-              <li>vc:region<input></input></li>
-            </ul></li>
-            <li>country
-            <select>
-	            <option value="Afghanistan">Afghanistan</option>
-	            <option value="Belgium">Belgium</option>
-	            <option value="CR">CoCosta Ricaa Rica</option>
-	            <option value="France">France</option>
-	            <option value="United Kingdom">United Kingdom</option>
-	            <option value="United States">Unid States</option>
-	            <option value="Zimbabwe">Zimbabwe</option>
-            </select>
-            </li>
-          </ul>
-        </div>
-        </li>
-        <li>company<input></input></li>
-      </ul>
-    </div>
-    -->
+      <div>
+      <span id="focus-node-span">focus node: <select id="focus-node"></select></span>
+      </div>
+      <div id="form" class="panel form">no form yet</div>
+      <div class="inter-panel">
+        <button id="turtle-to-form">←</button>
+      </div>
+      <div class="panel turtle">
+        <h2>Turtle</h2>
+        <textarea></textarea>
+        <pre><code class="hljs">...</code></pre>
+      </div>
     </div>
     <script src="./shex-core-browserify.js"></script>
     <script src="./shex-parser-browserify.js"></script>
@@ -115,6 +50,5 @@
     <script src="//www.w3.org/scripts/jquery/2.2.4/jquery.min.js"></script>
     <script src="./highlight-shexc-json.pack.js"></script>
     <script src="./index.js"></script>
-    <p><a href="http://localhost/tmp/checkouts/shexSpec/shex.js/packages/shex-webapp/doc/shex-simple.html?schema=base%20%3Chttp%3A%2F%2Fa.example%2Fbase%3E%0APREFIX%20foaf%3A%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0APREFIX%20vc%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2006%2Fvcard%2Fns%23%3E%0APREFIX%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0APREFIX%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0APREFIX%20%3A%20%3Chttp%3A%2F%2Fjaneirodigital.com%2Flayout%23%3E%0APREFIX%20solid%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fsolid%2Fterms%23%3E%0A%0A%3C%23UserProfile%3E%20%7B%0A%20%20solid%3Awebid%20IRI%0A%20%20%20%20%2F%2F%20rdfs%3Alabel%20%22profile%20webid%22%0A%20%20%20%20%2F%2F%20%3Areadonly%20true%20%3B%0A%20%20(%20%20%20foaf%3Aname%20xsd%3Astring%20MinLength%202%0A%20%20%20%20%7C%20foaf%3AgivenName%20xsd%3Astring%20%3B%0A%20%20%20%20%20%20foaf%3AfamilyName%20xsd%3Astring%0A%20%20)%2B%20%3B%0A%20%20vc%3Atelephone%20IRI%20%2F%5Etel%3A%5C%2B%3F%5B0-9.-%5D%2F%20%3F%20%3B%0A%20%20vc%3AhasAddress%20%40%3C%23vcard_street-address%3E%20*%20%3B%0A%20%20vc%3Aorganization-name%20xsd%3Astring%20%3F%0A%20%20%20%20%2F%2F%20rdfs%3Alabel%20%22company%22%20%3B%0A%7D%20%2F%2F%20rdfs%3Alabel%20%22User%20Profile%22%0A%0A%3C%23vcard_street-address%3E%20CLOSED%20%7B%0A%20%20a%20%5Bvc%3AStreetAddress%20vc%3AMailingAddress%5D%20%3F%20%3B%0A%20%20vc%3Astreet-address%20xsd%3Astring%20%3F%20%2F%2F%20rdfs%3Alabel%20%22street%22%20%3B%0A%20%20(%20%20%20vc%3Alocality%20xsd%3Astring%20%3F%20%3B%0A%20%20%20%20%7C%20vc%3Aregion%20xsd%3Astring%20%3F%0A%20%20)%20%3B%0A%20%20vc%3Acountry-name%20%40%3C%23vcard_country-name%3E%20%3F%0A%20%20%20%20%2F%2F%20rdfs%3Alabel%20%22country%22%20%3B%0A%20%20vc%3Apostal-code%20xsd%3Astring%20%3F%0A%7D%20%2F%2F%20rdfs%3Alabel%20%22Address%22%0A%0A%3C%23vcard_country-name%3E%20%5B%0A%20%20%22Afghanistan%22%0A%20%20%22Belgium%22%0A%20%20%22CR%22%0A%20%20%22France%22%0A%20%20%22%E6%97%A5%E6%9C%AC%22%0A%20%20%22United%20Kingdom%22%0A%20%20%22United%20States%22%0A%20%20%22Zimbabwe%22%0A%5D&amp;data=base%20%3Chttp%3A%2F%2Fa.example%2Fbase%3E%0APREFIX%20foaf%3A%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0APREFIX%20vc%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2006%2Fvcard%2Fns%23%3E%0APREFIX%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0APREFIX%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0APREFIX%20%3A%20%3Chttp%3A%2F%2Fjaneirodigital.com%2Flayout%23%3E%0APREFIX%20solid%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fsolid%2Fterms%23%3E%0A%0A%0A%3C%23me%3E%0A%20%20solid%3Awebid%20%3C%23webid%3E%20%3B%0A%20%20foaf%3Aname%20%22Robert%20Smith%22%20%3B%0A%20%20vc%3Atelephone%20%3Ctel%3A%2B33.6.80.80.00.00%3E%20%3B%0A%20%20vc%3AhasAddress%20%5B%0A%20%20%20%20a%20vc%3AStreetAddress%20%3B%0A%20%20%20%20vc%3Alocality%20%22%E7%A5%9E%E5%A5%88%E5%B7%9D%E4%BB%B6%22%20%3B%0A%20%20%20%20vc%3Acountry-name%20%22%E6%97%A5%E6%9C%AC%22%20%3B%0A%20%20%20%20vc%3Apostal-code%20%2263000-8%22%0A%20%20%5D%2C%20%5B%0A%20%20%20%20a%20vc%3AMailingAddress%20%3B%0A%20%20%20%20vc%3Aregion%20%22CF%22%20%3B%0A%20%20%20%20vc%3Acountry-name%20%22France%22%20%3B%0A%20%20%20%20vc%3Apostal-code%20%2263000%22%0A%20%20%5D%20%3B%0A%20%20vc%3Aorganization-name%20%22%E6%85%B6%E6%87%89%E7%BE%A9%E5%A1%BE%22%20.&amp;manifestURL=..%2Fexamples%2Fmanifest.json&amp;shape-map=%3C%23me%3E%40%3C%23UserProfile%3E&amp;interface=appinfo&amp;regexpEngine=threaded-val-nerr">try it</a></p>
   </body>
 </html>
