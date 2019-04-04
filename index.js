@@ -611,7 +611,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
     | foaf:givenName xsd:string ;
       foaf:familyName xsd:string
   )+ ;
-  foaf:homepage IRI /^tel:+?[0-9.-]/ ? ;
+  vc:telephone IRI /^tel:\\+?[0-9.-]/ ? ;
   vc:hasAddress @<#vcard_street-address> * ;
   vc:organization-name xsd:string ?
     // rdfs:label "company" ;
