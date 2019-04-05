@@ -208,7 +208,7 @@
       paintShapeChoice(schema)
 
       // syntax highlight ShExC
-      let result = hljs.highlight("json", shexcText, true)
+      let result = hljs.highlight("shexc", shexcText, true)
       $(".shexc .hljs").html(result.value)
       $(".shexc textarea").hide()
       $(".shexc pre").show()
