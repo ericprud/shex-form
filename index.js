@@ -443,6 +443,7 @@
 
   // Walk a validation result to generate a form.
   function ValidationResultsRenderer (schema) {
+    const changes = new Map() // jQuery elt -> new value
     const validator = shexCore.Validator.construct(
       // JtoAS modifies original; +1 to working with native ShExJ.
       shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
@@ -455,6 +456,24 @@
       paintNodeConstraint: paintNodeConstraint,
       paintTripleExpression: paintTripleExpression,
       paintTripleConstraint: paintTripleConstraint,
+      edits: edits
+    }
+
+    function edits () {
+      return Array.from(changes.values())
+    }
+
+    function markChange (jElt, triple, newTerm) {
+      // if (newTerm.equals(triple.object)) {
+      if (shexCore.RdfTerm.isLiteral(newTerm)
+          ? shexCore.RdfTerm.getLiteralValue(newTerm) === triple.object.value
+          : newTerm === triple.object) {
+        changes.delete(jElt)
+        return false
+      } else {
+        changes.set(jElt, {"-": triple, "+": newTerm} )
+        return true
+      }
     }
 
     function findShapeExpression (goal) {
