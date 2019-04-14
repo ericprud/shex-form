@@ -73,11 +73,9 @@
     schemaP.then(
       schema => {
         updateTryItLink()
+        const r = new SchemaRenderer(schema)
         $("#form").empty().append( // @@ assumes only one return
-          new SchemaRenderer(schema).
-            paintShapeExpression($("#start-shape").val())[0]
-            .attr("id", "form")
-            .addClass("panel")
+          r.paintShapeExpression($("#start-shape").val())
         )
       },
       alert
@@ -102,12 +100,14 @@
         alert("failed to validate, see console")
         console.warn(results)
       } else {
-        $("#form").empty().append( // @@ assumes only one return
-          new ValidationResultsRenderer(schema).
-            paintShapeExpression(results)[0]
-            .attr("id", "form")
-            .addClass("panel")
-        )
+        const r = new ValidationResultsRenderer(schema)
+        $("#form").empty().append(
+          r.paintShapeExpression(results),
+          [$("<input/>", { type: "submit" })]
+        ).on("submit", evt => {
+          evt.preventDefault()
+          console.log(r.edits())
+        })
       }
     }, alert)
   })
@@ -342,7 +342,7 @@
     }
 
     function paintShape (shexpr) {
-      let div = $("<div/>", { class: "form" })
+      let div = $("<div/>", { class: "shape" })
       let label = findLabel(shexpr)
       if (label)
         div.append($("<h3>").text(label.object.value))
@@ -479,7 +479,7 @@
     }
 
     function paintShape (shexpr) {
-      let div = $("<div/>", { class: "form" })
+      let div = $("<div/>", { class: "shape" })
       let label = findLabel(shexpr)
       if (label)
         div.append($("<h3>").text(label.object.value))
@@ -488,29 +488,31 @@
       return [div]
     }
 
-    function paintNodeConstraint (nc, value) {
+    function paintNodeConstraint (nc, tested) {
       if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
         throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
 
       function validatedInput (makeTerm) {
-        return $("<input/>").on("blur", evt => {
-          let jElt = $(evt.target)
+        let jElt = $("<input/>").data("triple", tested).on("blur", evt => {
           let lexicalValue = jElt.val()
-          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
+          let newTerm = makeTerm(lexicalValue)
+          let res = validator._validateShapeExpr(null, newTerm, nc, "", null, {})
           if ("errors" in res) {
             console.warn(res)
             jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
           } else {
             jElt.removeClass("error").removeAttr("title")
+            markChange(jElt, tested, newTerm)
           }
         })
+        return jElt
       }
 
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
         case IRI_XsdInteger:
-          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype).val(value.object.value)]
+          return [validatedInput(s => scalarize(s, nc.datatype)).val(tested.object.value)]
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
@@ -518,26 +520,34 @@
       if ("nodeKind" in nc)
         switch (nc.nodeKind) {
         case "iri" : 
-          return [validatedInput(s => s).val(value.object)] // JSON-LD IRIs are expressed directly as strings.
+          return [validatedInput(s => s).val(tested.object)] // JSON-LD IRIs are expressed directly as strings.
         default:
           throw Error("paintNodeConstraint({nodeKind: " + nc.nodeKind + "})")
         }
 
-      if ("values" in nc)
-        return [$("<select/>").append(nc.values.map(v => {
+      if ("values" in nc) {
+        let jElt = $("<select/>").append(nc.values.map(v => {
           let vStr = typeof v === "object"
               ? v.value      // a string
               : localName(v, Meta.shexc) // an IRI
-          let ret = $("<option/>", {value: vStr}).text(vStr)
-          let mStr = typeof value.object === "object"
-              ? value.object.value      // a string
-              : localName(value.object, Meta.shexc) // an IRI
+          let ret = $("<option/>", {value: typeof v === "object" ? scalarize(v.value, v.datatype) : v }).text(vStr)
+          let mStr = typeof tested.object === "object"
+              ? tested.object.value      // a string
+              : localName(tested.object, Meta.shexc) // an IRI
           if (mStr === vStr)
             ret.attr("selected", "selected")
           return ret
-        }))]
+        })).data("triple", tested).on("blur", evt => {
+          markChange(jElt, tested, jElt.val())
+        })
+        return [jElt]
+      }
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
+    }
+
+    function scalarize (s, datatype) {
+      return "\"" + s.replace(/"/g, "\\\"") + "\"^^" + datatype
     }
 
     function paintTripleExpression (texpr) {

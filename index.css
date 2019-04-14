@@ -15,20 +15,22 @@
 #turtle-to-form { position: relative; top: 50%; }
 #start-shape-span { float: right; }
 #focus-node-span {  }
+#form { display: table; }
+#form div { width: -webkit-fill-available; padding-right: .4em; }
 .shexc { border-color: blue; }
 .shexj { border-color: green; }
-.form { border: thin solid black; display: table; }
-.form h3 { margin: 0; padding-left: .3em; }
-.form + .form { margin-top: .5em; }
+.shape { border: thin solid black; display: table; }
+.shape h3 { margin: 0; padding-left: .3em; }
+.shape + .shape { margin-top: .5em; }
 .separator { list-style-type: none; margin-left: -1.1em; }
 .disjunction { display: inline-block; border-left: medium solid grey; margin-left: -1.8em; }
 .disjunction999 { display: inline-block; border: thick solid #ddd; margin-left: -1.8em; border-left-style: dashed; border-right: none; }
 .disjunction > ul li { margin-left: -1em; }
 .add { color: darkgreen; }
-.form .error { border: thin solid red; }
+.shape .error { border: thin solid red; }
 .top > * { display: inline; height: 1.5em; padding-right: .5em; }
 h1 { margin: 0; }
-.form input, .form select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }
+.shape input, .shape select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }
 input[readonly] { background-color: lightgrey; }
 ul { margin: 0; }
 li { line-height: 2em; }
