@@ -12,7 +12,7 @@
 .panel pre { overflow: scroll; margin: 0; }
 #shexc-to-shexj { position: relative; top: 50%; }
 #shexj-to-form {  }
-#turtle-to-form { position: relative; top: 50%; }
+#data-to-form { position: relative; top: 50%; }
 #start-shape-span { float: right; }
 #focus-node-span {  }
 #form { display: table; }
