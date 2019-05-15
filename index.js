@@ -82,10 +82,53 @@
   }).on("change", clearCurrentForm)
 
   // [⟲] button
-  // $("#shexc-to-shexj").on("click", evt => {
-  //   $(".shexj textarea").val("")
-  //   getSchemaPromises().catch(alert)
-  // })
+  $("#shexc-to-shexj").on("click", evt => { // !!! largely duplicates parseSchema()
+    const format = $("#schemaFormat").val()
+    const nowDoing = "Parsing " + format
+    console.log(nowDoing)
+    return new Promise((accept, reject) => {
+      let schemaText = $(".shexc textarea").val()
+      let schema, pretty
+      try {
+        if (format === "ShExC") {
+          let parser = shexParser.construct(location.href, null, {index: true})
+          schema = parser.parse(schemaText)
+          schemaText = JSON.stringify(schema, null, 2)
+          pretty = hljs.highlight("json", schemaText, true)
+          $("#schemaFormat").val("ShExJ")
+        } else {
+          schema = JSON.parse(schemaText)
+          schema = relativeize(schema, schema._base || location.href)
+          let w = new shexCore.Writer(null, {
+            simplifyParentheses: false,
+            prefixes: schema._prefixes || {},
+            base: schema._base || location.href
+          })
+          w.writeSchema(schema, function (error, text, prefixes) {
+            if (error) throw error;
+            else schemaText = text;
+          })
+          pretty = hljs.highlight("shexc", schemaText, true)
+          $("#schemaFormat").val("ShExC")
+        }
+        $(".shexc textarea").val(schemaText)
+
+        // keep track of prefixes for painting shape menu
+        Meta.shexc.prefixes = schema._prefixes || {}
+        Meta.shexc.base = schema._base || location.href
+        paintShapeChoice(schema)
+
+        // show syntax highlighted schema
+        $(".shexc .hljs").html(pretty.value)
+        $(".shexc textarea").hide()
+        $(".shexc pre").show()
+
+        accept(schema)
+      } catch (e) {
+        alert(e)
+      }
+    })
+  })
 
   // [↙] button
   $("#shexj-to-form").on("click", evt => {
