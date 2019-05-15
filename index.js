@@ -43,15 +43,23 @@
       link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" }
   ];
 
-  // populate inputs with defaults
-  $(".shexc textarea").val(defaultShExC())
-  $(".layout textarea").val(defaultLayout())
-  $(".data textarea").val(defaultData())
-  $(".layout pre").hide()
-  Promise.all([parseShExC(), parseLayout(), parseData()]).then(all => {
-    updateTryItLink()
-    clearCurrentForm()
-  })
+  const InputLoaders = [{parm: "schemaFormat", selector: "#schemaFormat" , parser: t => {
+    debugger
+    console.log(t)
+    t}},
+                        {parm: "schemaURL", selector: ".shexc  textarea", parser: parseSchema},
+                        {parm: "layoutURL", selector: ".layout textarea", parser: parseLayout},
+                        {parm: "dataURL",   selector: ".data   textarea", parser: parseData  }]
+
+  const CGIparms = location.search.substr(1).split(/[,&]/).map(
+    pair => pair.split("=").map(decodeURIComponent)
+  )
+
+  CGIparms.filter(
+    p => p[0] === "manifestURL"
+  ).map(
+    p => new URL(p[1], location) // just the value
+  ).forEach(loadManifest)
 
   // activate editor panel when clicked
   $(".panel pre")
@@ -65,7 +73,7 @@
 
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
-    getSchemaPromise().catch(alert)
+    Promise.all(getSchemaPromises()).catch(alert)
   }).on("change", clearCurrentForm)
 
   // re-generate focus node select whenever clicked
@@ -73,16 +81,16 @@
     parseData().catch(alert)
   }).on("change", clearCurrentForm)
 
-  // [→] button
+  // [⟲] button
   // $("#shexc-to-shexj").on("click", evt => {
   //   $(".shexj textarea").val("")
-  //   getSchemaPromise().catch(alert)
+  //   getSchemaPromises().catch(alert)
   // })
 
   // [↙] button
   $("#shexj-to-form").on("click", evt => {
     // get schema from ShExC
-    Promise.all(getSchemaPromise()).then(
+    Promise.all(getSchemaPromises()).then(
       pair => {
         let [schema, layout] = pair
         updateTryItLink()
@@ -97,15 +105,15 @@
 
   // [←] button
   $("#data-to-form").on("click", evt => {
-    let [schemaP, layoutP] = getSchemaPromise()
+    let [schemaP, layoutP] = getSchemaPromises()
     let graphP = parseData()
 
     Promise.all([schemaP, layoutP, graphP]).then(both => {
       let [schema, layout, graph] = both
       updateTryItLink()
-      let as = shexCore.Util.ShExJtoAS(JSON.parse(JSON.stringify(schema)))
+      const annotated = annotateSchema(schema, layout)
       nowDoing = "validating data"
-      let validator = shexCore.Validator.construct(as)
+      let validator = shexCore.Validator.construct(annotated)
       let db = shexCore.Util.makeN3DB(graph)
       let focus = $("#focus-node").val()
       let results = validator.validate(db, focus, $("#start-shape").val())
@@ -113,7 +121,7 @@
         alert("failed to validate, see console")
         console.warn(results)
       } else {
-        const r = new ValidationResultsRenderer(annotateSchema(schema, layout))
+        const r = new ValidationResultsRenderer(annotated)
         $("#form").empty().append(
           r.paintShapeExpression(results),
           [$("<input/>", { type: "submit" })]
@@ -126,6 +134,51 @@
   })
 
   return
+
+  function loadManifest (mURL) {
+    let buttons = []
+    fetch(mURL).then(
+      resp => resp.json()
+    ).then(
+      j => j.forEach(entry => {
+        const newButton = $("<button/>").text(entry.title).attr("title", entry.desc).on("click", evt => {
+          let target = $(evt.target)
+          if (target.hasClass("selected")) {
+            [".shexc", ".layout", ".data"].forEach(sel => {
+              $(sel).find("textarea").val("").show()
+              $(sel).find("pre code").text("...")
+            })
+            target.removeClass("selected")
+          } else {
+            buttons.forEach(b => b.removeClass("selected"))
+            loadManifestEntry(entry, mURL)
+            target.addClass("selected")
+          }
+        })
+        buttons.push(newButton)
+        const toAdd = $("<li/>").append(newButton)
+        $(".manifest").append(toAdd)
+      })
+    )
+  }
+
+  function loadManifestEntry (entry, baseURL) {
+    Promise.all(InputLoaders.map(loader => {
+      const urlOrValue = entry[loader.parm]
+      if (loader.parm.endsWith("URL")) {
+        return fetch(new URL(urlOrValue, baseURL)).then(resp => resp.text()).then(text => {
+          $(loader.selector).val(text)
+          return loader.parser(text)
+        })
+      } else {
+        $(loader.selector).val(urlOrValue)
+        return Promise.resolve(urlOrValue)
+      }
+    })).then(all => {
+      updateTryItLink()
+      clearCurrentForm()
+    })
+  }
 
   // try it link
 
@@ -147,22 +200,19 @@
   function annotateSchema (schema, layout) {
     schema = JSON.parse(JSON.stringify(schema)) // modify copy
     const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
-    const s = layout.getQuads(null, RDF_TYPE, LAYOUT)[0].subject
-    const annotated = layout.getQuads(s, ANNOTATION, null).map(t => {
-      const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
-      const elt = shexPath.search(pathStr)[0]
-      const newAnnots = layout.getQuads(t.object, null, null).filter(
-        t => !t.predicate.equals(PATH)
-      ).map(t => {
-        return {"type":"Annotation", "predicate":t.predicate.value, "object":Object.assign({"value":t.object.value}, t.object.datatypeString !== XSD_STRING.value ? {type: t.object.datatypeString} : {})}
+    layout.getQuads(null, RDF_TYPE, LAYOUT).forEach(quad => {
+      const annotated = layout.getQuads(quad.subject, ANNOTATION, null).map(t => {
+        const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
+        const elt = shexPath.search(pathStr)[0]
+        const newAnnots = layout.getQuads(t.object, null, null).filter(
+          t => !t.predicate.equals(PATH)
+        ).map(t => {
+          return {"type":"Annotation", "predicate":t.predicate.value, "object":Object.assign({"value":t.object.value}, t.object.datatypeString !== XSD_STRING.value ? {type: t.object.datatypeString} : {})}
+        })
+        elt.annotations = newAnnots // @@ merge, overriding same predicate values?
+        return elt
       })
-      // console.log([JSON.stringify(elt.annotations) == JSON.stringify(newAnnots), elt.annotations, newAnnots])
-      // console.log(JSON.stringify(elt.annotations) == JSON.stringify(newAnnots))
-      elt.annotations = newAnnots
-      return elt
     })
-    // console.log(annotated)
-    console.log(schema)
     return schema
   }
 
@@ -229,34 +279,55 @@
 
   // parser wrappers
 
-  function parseShExC () {
-    let nowDoing = "Parsing ShExC"
+  function parseSchema () {
+    const format = $("#schemaFormat").val()
+    const nowDoing = "Parsing " + format
+    console.log(nowDoing)
     return new Promise((accept, reject) => {
-    let shexcText = $(".shexc textarea").val()
-    try {
-      let parser = shexParser.construct(location.href)
-      let as = parser.parse($(".shexc textarea").val())
-      // keep track of prefixes for painting shape menu
-      Meta.shexc.prefixes = as.prefixes || {}
-      Meta.shexc.base = as.base || location.href
-      let schema = shexCore.Util.AStoShExJ(as)
-      paintShapeChoice(schema)
+      const schemaText = $(".shexc textarea").val()
+      let schema, pretty
+      try {
+        if (format === "ShExC") {
+          let parser = shexParser.construct(location.href, null, {index: true})
+          schema = parser.parse($(".shexc textarea").val())
+          pretty = hljs.highlight("shexc", schemaText, true)
+        } else {
+          schema = relativeize(JSON.parse($(".shexc textarea").val()), location.href)
+          $(".shexc textarea").val(JSON.stringify(schema, null, 2)) // overwrite with abs links
+          pretty = hljs.highlight("json", schemaText, true)
+        }
+        // keep track of prefixes for painting shape menu
+        Meta.shexc.prefixes = schema._prefixes || {}
+        Meta.shexc.base = schema._base || location.href
+        paintShapeChoice(schema)
 
-      // syntax highlight ShExC
-      let result = hljs.highlight("shexc", shexcText, true)
-      $(".shexc .hljs").html(result.value)
-      $(".shexc textarea").hide()
-      $(".shexc pre").show()
+        // show syntax highlighted schema
+        $(".shexc .hljs").html(pretty.value)
+        $(".shexc textarea").hide()
+        $(".shexc pre").show()
 
-      accept(schema)
-    } catch (e) {
-      alert(e)
-    }
+        accept(schema)
+      } catch (e) {
+        alert(e)
+      }
     })
   }
 
-  function getSchemaPromise () {
-    return [parseShExC().then(schemaParsed), parseLayout()]
+  function relativeize(object, base) {
+    "use strict";
+    for (var key in object) {
+      var item = object[key];
+      if (key === "id" || (key === "valueExpr" && typeof object[key] === "string")) {
+        object[key] = new URL(object[key], base).href;
+      } else if (typeof item === "object") {
+        relativeize(item, base);
+      }
+    }
+    return object;
+  }
+
+  function getSchemaPromises () {
+    return [parseSchema().then(schemaParsed), parseLayout()]
   }
 
   function schemaParsed (schema) {
@@ -272,7 +343,10 @@
   }
 
   function parseData () {
-    return parseTurtle("Data", Meta.data, ".data")
+    return parseTurtle("Data", Meta.data, ".data").then(graph => {
+      paintNodeChoice(graph)
+      return graph
+    })
   }
 
   function parseTurtle (label, meta, selector) {
@@ -292,7 +366,6 @@
             // keep track of prefixes for painting focus menu
             meta.prefixes = prefixes
             meta.base = parser._base
-            paintNodeChoice(graph)
 
             // syntax highlight
             let result = hljs.highlight("shexc", $(selector + " textarea").val(), true)
@@ -641,146 +714,5 @@
           }
         }, []))]
     }
-  }
-
-  // default text for <inputarea/>s
-  function defaultShExC () {
-    return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX : <http://janeirodigital.com/layout#>
-PREFIX solid: <http://www.w3.org/ns/solid/terms#>
-
-<#UserProfile> {
-  solid:webid IRI ;
-  (   foaf:name xsd:string MinLength 2
-    | foaf:givenName xsd:string ;
-      foaf:familyName xsd:string
-  )+ ;
-  vc:telephone IRI /^tel:\\+?[0-9.-]/ ? ;
-  vc:hasAddress @<#vcard_street-address> * ;
-  vc:organization-name xsd:string ? ;
-  vc:someInt xsd:integer ;
-}
-
-<#vcard_street-address> CLOSED {
-  a [vc:StreetAddress vc:MailingAddress] ? ;
-  vc:street-address xsd:string ? ;
-  (   vc:locality xsd:string ? ;
-    | vc:region xsd:string ?
-  ) ;
-  vc:country-name @<#vcard_country-name> ? ;
-  vc:postal-code xsd:string ?
-}
-
-<#vcard_country-name> [
-  "Afghanistan"
-  "Belgium"
-  "CR"
-  "France"
-  "日本"
-  "United Kingdom"
-  "United States"
-  "Zimbabwe"
-]`
-  }
-
-  // default text for <inputarea/>s
-  function defaultShExC999 () {
-    return `PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX : <http://janeirodigital.com/layout#>
-PREFIX solid: <http://www.w3.org/ns/solid/terms#>
-
-<#UserProfile> {
-  solid:webid IRI
-    // rdfs:label "profile webid"
-    // :readonly true ;
-  (   foaf:name xsd:string MinLength 2
-    | foaf:givenName xsd:string ;
-      foaf:familyName xsd:string
-  )+ ;
-  vc:telephone IRI /^tel:\\+?[0-9.-]/ ? ;
-  vc:hasAddress @<#vcard_street-address> * ;
-  vc:organization-name xsd:string ?
-    // rdfs:label "company" ;
-  vc:someInt xsd:integer ;
-} // rdfs:label "User Profile"
-
-<#vcard_street-address> CLOSED {
-  a [vc:StreetAddress vc:MailingAddress] ? ;
-  vc:street-address xsd:string ? // rdfs:label "street" ;
-  (   vc:locality xsd:string ? ;
-    | vc:region xsd:string ?
-  ) ;
-  vc:country-name @<#vcard_country-name> ?
-    // rdfs:label "country" ;
-  vc:postal-code xsd:string ?
-} // rdfs:label "Address"
-
-<#vcard_country-name> [
-  "Afghanistan"
-  "Belgium"
-  "CR"
-  "France"
-  "日本"
-  "United Kingdom"
-  "United States"
-  "Zimbabwe"
-]`
-  }
-
-  function defaultLayout () {
-    return `
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX : <http://janeirodigital.com/layout#>
-
-<#L> a :Layout ; :annotation
-  [ :path "@<#UserProfile>" ;
-      rdfs:label "User Profile" ],
-  [ :path "@<#UserProfile>/<http://www.w3.org/ns/solid/terms#webid>" ;
-      rdfs:label "profile webid" ;
-      :readonly true ],
-  [ :path "@<#UserProfile>/<http://www.w3.org/2006/vcard/ns#organization-name>" ;
-      rdfs:label "company" ],
-
-  [ :path "@<#vcard_street-address>" ;
-      rdfs:label "Address" ],
-  [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#street-address>" ;
-      rdfs:label "street" ],
-  [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#country-name>" ;
-      rdfs:label "country" ]
-.`
-  }
-
-  function defaultData () {
-    return `
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX : <http://janeirodigital.com/layout#>
-PREFIX solid: <http://www.w3.org/ns/solid/terms#>
-
-<#me>
-  solid:webid <#webid> ;
-  foaf:name "Robert Smith" ;
-  vc:telephone <tel:+33.6.80.80.00.00> ;
-  vc:hasAddress [
-    a vc:StreetAddress ;
-    vc:locality "神奈川件" ;
-    vc:country-name "日本" ;
-    vc:postal-code "63000-8"
-  ], [
-    a vc:MailingAddress ;
-    vc:region "CF" ;
-    vc:country-name "France" ;
-    vc:postal-code "63000"
-  ] ;
-  vc:organization-name "慶應義塾" ;
-  vc:someInt 7 .`
   }
 })()

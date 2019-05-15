@@ -17,6 +17,7 @@
 #focus-node-span {  }
 #form { display: table; }
 #form div { width: -webkit-fill-available; padding-right: .4em; }
+.panel > .shape { border: none; }
 .shexc { border-color: blue; }
 .shexj { border-color: green; }
 .shape { border: thin solid black; display: table; }
@@ -32,9 +33,9 @@
 h1 { margin: 0; }
 .shape input, .shape select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }
 input[readonly] { background-color: lightgrey; }
-ul { margin: 0; }
-li { line-height: 2em; }
-hr { /* margin-left: -1.8em; */ border:none; border-top:thin dashed #ddd; height:1px; }
+#form ul { margin: 0; }
+#form li { line-height: 2em; }
+#form hr { /* margin-left: -1.8em; */ border:none; border-top:thin dashed #ddd; height:1px; }
 
 .tryit {
     text-decoration: none; font: menu;
@@ -68,3 +69,42 @@ hr { /* margin-left: -1.8em; */ border:none; border-top:thin dashed #ddd; height
 .tryit a:visited {
     color: #551A8B;
 }
+
+.top img { float: left; }
+.top h1 { float: left; }
+
+ul.manifest {
+ padding:0;
+ margin:0;
+ list-style-type:none;
+ }
+.manifest li {
+ margin-left:2px;
+ float:left; /*pour IE*/
+ }
+ul.manifest li button {
+    float:left;
+    font-size: .7em;
+    padding: 0em 2ex;
+    border-radius: .5em;
+    border: thin solid #000;
+    cursor: pointer;
+    box-shadow: 0.1em 0px 1em rgba(255, 255, 255, 0.9) inset;
+}
+
+ul.manifest li button.selected {
+    /* background-color: #e8e8ff; */
+    background-color: #c8e8ff;
+    color: #000000;
+}
+ul.manifest li button:hover {
+ /* background-color:#D3D3D3; */
+ border-color:#696969 #DCDCDC #DCDCDC #696969;
+}
+
+#schemaFormat {
+    font: inherit;
+    border: none;
+    background-color: inherit;
+}
+

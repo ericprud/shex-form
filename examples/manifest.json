@@ -1,0 +1,26 @@
+[
+  {
+    "title": "layout in schema",
+    "desc": "profile with layout embedded in schema",
+    "schemaURL": "profile-layout.shex",
+    "schemaFormat": "ShExC",
+    "layoutURL": "empty.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "external layout",
+    "desc": "profile with two nested addresses",
+    "schemaURL": "profile.shex",
+    "schemaFormat": "ShExC",
+    "layoutURL": "profile-layout.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "external ShExJ",
+    "desc": "profile in ShExJ",
+    "schemaURL": "profile.json",
+    "schemaFormat": "ShExJ",
+    "layoutURL": "profile-layout.ttl",
+    "dataURL": "profile1.ttl"
+  }
+]

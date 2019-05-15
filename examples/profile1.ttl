@@ -1,0 +1,23 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
+PREFIX solid: <http://www.w3.org/ns/solid/terms#>
+
+<#me>
+  solid:webid <#webid> ;
+  foaf:name "Robert Smith" ;
+  vc:telephone <tel:+33.6.80.80.00.00> ;
+  vc:hasAddress [
+    a vc:StreetAddress ;
+    vc:locality "神奈川件" ;
+    vc:country-name "日本" ;
+    vc:postal-code "63000-8"
+  ], [
+    a vc:MailingAddress ;
+    vc:region "CF" ;
+    vc:country-name "France" ;
+    vc:postal-code "63000"
+  ] ;
+  vc:organization-name "慶應義塾" ;
+  vc:someInt 7
+.
+
