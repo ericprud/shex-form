@@ -15,12 +15,12 @@
     </div>
     <div class="guts">
       <div class="panel shexc">
-        <h2>ShEx<select id="schemaFormat"><option value="ShExC">C</option><option value="ShExJ">J</option></select></h2>
+        <h2>ShEx<select id="schemaFormat"><option value="ShExC">C</option><option value="ShExJ">J</option><option value="ShExR">R</option></select></h2>
         <textarea></textarea>
         <pre><code class="hljs">...</code></pre>
       </div>
       <div>
-        <!-- <button id="shexc-to-shexj">→</button> -->
+        <button id="shexc-to-shexj">⟲</button>
       </div>
       <div class="panel layout">
         <h2>Layout</h2>
@@ -51,6 +51,7 @@
     <script src="./n3-browserify.js"></script>
     <script src="//www.w3.org/scripts/jquery/2.2.4/jquery.min.js"></script>
     <script src="./highlight-shexc-json.pack.js"></script>
+    <script src="./ShExRSchema.js"></script>
     <script src="./index.js"></script>
   </body>
 </html>

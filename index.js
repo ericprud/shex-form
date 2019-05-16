@@ -18,6 +18,7 @@
   const LAYOUT = F.namedNode("http://janeirodigital.com/layout#Layout")
   const ANNOTATION = F.namedNode("http://janeirodigital.com/layout#annotation")
   const PATH = F.namedNode("http://janeirodigital.com/layout#path")
+  const REF = F.namedNode("http://janeirodigital.com/layout#ref")
   const XSD_STRING = F.namedNode("http://www.w3.org/2001/XMLSchema#string")
 
   let Meta = {
@@ -243,10 +244,21 @@
   function annotateSchema (schema, layout) {
     schema = JSON.parse(JSON.stringify(schema)) // modify copy
     const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
+    let index = schema.index
     layout.getQuads(null, RDF_TYPE, LAYOUT).forEach(quad => {
       const annotated = layout.getQuads(quad.subject, ANNOTATION, null).map(t => {
-        const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
-        const elt = shexPath.search(pathStr)[0]
+        let elt = null
+        let quads = layout.getQuads(t.object, REF, null)
+        if (quads.length) {
+          if (!index)
+            index = shexCore.Util.index(schema);
+          let lookFor = quads[0].object.value
+          elt = index.shapeExprs.get(lookFor) || index.tripleExprs.get(lookFor)
+          console.log([elt, quads[0].object.value, index])
+        } else {
+          const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
+          elt = shexPath.search(pathStr)[0]
+        }
         const newAnnots = layout.getQuads(t.object, null, null).filter(
           t => !t.predicate.equals(PATH)
         ).map(t => {
@@ -332,12 +344,22 @@
       try {
         if (format === "ShExC") {
           let parser = shexParser.construct(location.href, null, {index: true})
-          schema = parser.parse($(".shexc textarea").val())
+          schema = parser.parse(schemaText)
           pretty = hljs.highlight("shexc", schemaText, true)
-        } else {
-          schema = relativeize(JSON.parse($(".shexc textarea").val()), location.href)
+        } else if (format === "ShExJ") {
+          schema = relativeize(JSON.parse(schemaText), location.href)
           $(".shexc textarea").val(JSON.stringify(schema, null, 2)) // overwrite with abs links
           pretty = hljs.highlight("json", schemaText, true)
+        } else {
+          let graph = new N3.Store()
+          let parser = new N3.Parser({format: "application/turtle", baseIRI: location.href})
+          graph.addQuads(parser.parse(schemaText))
+          let shexRSchemaObj = shexParser.construct(location.href, null, {index: true}).parse(ShExRSchema);
+          let graphParser = shexCore.Validator.construct(shexRSchemaObj, {})
+          let schemaRoot = graph.getQuads(null, shexCore.Util.RDF.type, "http://www.w3.org/ns/shex#Schema")[0].subject; // !!check
+          let val = graphParser.validate(shexCore.Util.makeN3DB(graph), schemaRoot, shexCore.Validator.start); // start shape
+          schema = shexCore.Util.ShExRtoShExJ(shexCore.Util.valuesToSchema(shexCore.Util.valToValues(val)));
+          pretty = hljs.highlight("shexc", schemaText, true)
         }
         // keep track of prefixes for painting shape menu
         Meta.shexc.prefixes = schema._prefixes || {}

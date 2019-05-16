@@ -1,26 +1,58 @@
 [
   {
     "title": "layout in schema",
-    "desc": "profile with layout embedded in schema",
-    "schemaURL": "profile-layout.shex",
+    "desc": "profile schema with layout",
+    "schemaURL": "profile+layout.shex",
     "schemaFormat": "ShExC",
     "layoutURL": "empty.ttl",
     "dataURL": "profile1.ttl"
   },
   {
-    "title": "external layout",
-    "desc": "profile with two nested addresses",
-    "schemaURL": "profile.shex",
+    "title": "layout by ref (ShExC)",
+    "desc": "profile schema with two nested addresses",
+    "schemaURL": "profile-labeled-TCs.shex",
     "schemaFormat": "ShExC",
-    "layoutURL": "profile-layout.ttl",
+    "layoutURL": "profile-layout-ref.ttl",
     "dataURL": "profile1.ttl"
   },
   {
-    "title": "external ShExJ",
+    "title": "layout by ref (ShExJ)",
     "desc": "profile in ShExJ",
     "schemaURL": "profile.json",
     "schemaFormat": "ShExJ",
-    "layoutURL": "profile-layout.ttl",
+    "layoutURL": "profile-layout-ref.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "layout by ref (ShExR)",
+    "desc": "profile in ShExR",
+    "schemaURL": "profile.ttl",
+    "schemaFormat": "ShExR",
+    "layoutURL": "profile-layout-ref.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "layout by path (ShExC)",
+    "desc": "profile schema with two nested addresses",
+    "schemaURL": "profile.shex",
+    "schemaFormat": "ShExC",
+    "layoutURL": "profile-layout-path.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "layout by path (ShExJ)",
+    "desc": "profile in ShExJ",
+    "schemaURL": "profile.json",
+    "schemaFormat": "ShExJ",
+    "layoutURL": "profile-layout-path.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "layout by path (ShExR)",
+    "desc": "profile in ShExR",
+    "schemaURL": "profile.ttl",
+    "schemaFormat": "ShExR",
+    "layoutURL": "profile-layout-path.ttl",
     "dataURL": "profile1.ttl"
   }
 ]
