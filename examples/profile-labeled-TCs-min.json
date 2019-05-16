@@ -1,0 +1,182 @@
+{
+  "type": "Schema",
+  "shapes": [
+    { "id": "http://a.example/schema1#UserProfile",
+      "type": "Shape",
+      "expression": {
+        "type": "EachOf",
+        "expressions": [
+          { "id": "http://a.example/schema1#UserProfile-TC-webid-1",
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/ns/solid/terms#webid",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "nodeKind": "iri"
+            }
+          },
+          {
+            "type": "OneOf",
+            "expressions": [
+              {
+                "type": "TripleConstraint",
+                "predicate": "http://xmlns.com/foaf/0.1/name",
+                "valueExpr": {
+                  "type": "NodeConstraint",
+                  "datatype": "http://www.w3.org/2001/XMLSchema#string",
+                  "minlength": 2
+                }
+              },
+              {
+                "type": "EachOf",
+                "expressions": [
+                  {
+                    "type": "TripleConstraint",
+                    "predicate": "http://xmlns.com/foaf/0.1/givenName",
+                    "valueExpr": {
+                      "type": "NodeConstraint",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#string"
+                    }
+                  },
+                  {
+                    "type": "TripleConstraint",
+                    "predicate": "http://xmlns.com/foaf/0.1/familyName",
+                    "valueExpr": {
+                      "type": "NodeConstraint",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#string"
+                    }
+                  }
+                ]
+              }
+            ],
+            "min": 0,
+            "max": 1
+          },
+          {
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#telephone",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "nodeKind": "iri",
+              "pattern": "^tel:\\+?[0-9.-]"
+            },
+            "min": 0,
+            "max": 1
+          },
+          {
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#hasAddress",
+            "valueExpr": "http://a.example/schema1#vcard_street-address",
+            "min": 0,
+            "max": -1
+          },
+          { "id": "http://a.example/schema1#UserProfile-TC-organization-name-1",
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#organization-name",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "datatype": "http://www.w3.org/2001/XMLSchema#string"
+            },
+            "min": 0,
+            "max": 1
+          },
+          {
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#someInt",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+            }
+          }
+        ]
+      }
+    },
+    { "id": "http://a.example/schema1#vcard_street-address",
+      "type": "Shape",
+      "closed": true,
+      "expression": {
+        "type": "EachOf",
+        "expressions": [
+          {
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "values": [
+                "http://www.w3.org/2006/vcard/ns#StreetAddress",
+                "http://www.w3.org/2006/vcard/ns#MailingAddress"
+              ]
+            },
+            "min": 0,
+            "max": 1
+          },
+          { "id": "http://a.example/schema1#vcard_street-address-street-address-1",
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#street-address",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "datatype": "http://www.w3.org/2001/XMLSchema#string"
+            },
+            "min": 0,
+            "max": 1
+          },
+          {
+            "type": "OneOf",
+            "expressions": [
+              {
+                "type": "TripleConstraint",
+                "predicate": "http://www.w3.org/2006/vcard/ns#locality",
+                "valueExpr": {
+                  "type": "NodeConstraint",
+                  "datatype": "http://www.w3.org/2001/XMLSchema#string"
+                },
+                "min": 0,
+                "max": 1
+              },
+              {
+                "type": "TripleConstraint",
+                "predicate": "http://www.w3.org/2006/vcard/ns#region",
+                "valueExpr": {
+                  "type": "NodeConstraint",
+                  "datatype": "http://www.w3.org/2001/XMLSchema#string"
+                },
+                "min": 0,
+                "max": 1
+              }
+            ]
+          },
+          { "id": "http://a.example/schema1#vcard_street-address-country-name-1",
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#country-name",
+            "valueExpr": "http://a.example/schema1#vcard_country-name",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "type": "TripleConstraint",
+            "predicate": "http://www.w3.org/2006/vcard/ns#postal-code",
+            "valueExpr": {
+              "type": "NodeConstraint",
+              "datatype": "http://www.w3.org/2001/XMLSchema#string"
+            },
+            "min": 0,
+            "max": 1
+          }
+        ]
+      }
+    },
+    { "id": "http://a.example/schema1#vcard_country-name",
+      "type": "NodeConstraint",
+      "values": [
+        { "value": "Afghanistan" },
+        { "value": "Belgium" },
+        { "value": "CR" },
+        { "value": "France" },
+        { "value": "日本" },
+        { "value": "United Kingdom" },
+        { "value": "United States" },
+        { "value": "Zimbabwe" }
+      ]
+    }
+  ],
+  "@context": "http://www.w3.org/ns/shex.jsonld"
+}

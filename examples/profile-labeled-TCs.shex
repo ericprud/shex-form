@@ -1,0 +1,70 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <http://janeirodigital.com/layout#>
+PREFIX solid: <http://www.w3.org/ns/solid/terms#>
+BASE <http://a.example/schema1>
+
+<#UserProfile> {
+  $<#UserProfile-TC-webid-1>
+      solid:webid IRI ;
+
+  $<#UserProfile-TC-nameChoice-1>
+      (
+    $<#UserProfile-TC-name-1>
+          foaf:name xsd:string MinLength 2
+        |
+    $<#UserProfile-TC-givenName-1>
+          foaf:givenName xsd:string ;
+    $<#UserProfile-TC-familyName-1>
+          foaf:familyName xsd:string
+      )? ;
+
+  $<#UserProfile-TC-telephone-1>
+      vc:telephone IRI /^tel:\+?[0-9.-]/ ? ;
+
+  $<#UserProfile-TC-hasAddress-1>
+      vc:hasAddress @<#vcard_street-address> * ;
+
+  $<#UserProfile-TC-organization-name-1>
+      vc:organization-name xsd:string ? ;
+
+  $<#UserProfile-TC-someInt-1>
+      vc:someInt xsd:integer ;
+}
+
+<#vcard_street-address> CLOSED {
+  $<#vcard_street-address-type-1>
+      a [vc:StreetAddress vc:MailingAddress] ? ;
+
+  $<#vcard_street-address-street-address-1>
+      vc:street-address xsd:string ? ;
+
+  $<#vcard_street-address-whereChoice-1>
+      (
+    $<#vcard_street-address-localilty-1>
+          vc:locality xsd:string ? ;
+        |
+    $<#vcard_street-address-region-1>
+          vc:region xsd:string ?
+      ) ;
+
+  $<#vcard_street-address-country-name-1>
+      vc:country-name @<#vcard_country-name> ? ;
+
+  $<#vcard_street-address-postal-code-1>
+      vc:postal-code xsd:string ?
+}
+
+<#vcard_country-name> [
+  "Afghanistan"
+  "Belgium"
+  "CR"
+  "France"
+  "日本"
+  "United Kingdom"
+  "United States"
+  "Zimbabwe"
+]
+

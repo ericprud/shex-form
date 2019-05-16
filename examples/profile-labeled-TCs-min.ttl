@@ -1,0 +1,135 @@
+PREFIX shex: <http://www.w3.org/ns/shex#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+BASE <http://a.example/schema1>
+
+[] a shex:Schema ;
+  shex:shapes <#UserProfile>, <#vcard_street-address>, <#vcard_country-name> .
+
+<#UserProfile> a shex:Shape ;
+  shex:expression [
+    a shex:EachOf ;
+    shex:expressions (<#UserProfile-TC-webid-1>
+      [ a shex:OneOf ;
+        shex:expressions (
+          [ a shex:TripleConstraint ;
+            shex:predicate <http://xmlns.com/foaf/0.1/name> ;
+            shex:valueExpr [
+              a shex:NodeConstraint ;
+              shex:datatype xsd:string ;
+              shex:minlength 2 ] ]
+          [ a shex:EachOf ;
+            shex:expressions (
+              [ a shex:TripleConstraint ;
+                shex:predicate <http://xmlns.com/foaf/0.1/givenName> ;
+                shex:valueExpr [
+                  a shex:NodeConstraint ;
+                  shex:datatype xsd:string ] ]
+              [ a shex:TripleConstraint ;
+                shex:predicate <http://xmlns.com/foaf/0.1/familyName> ;
+                shex:valueExpr [
+                  a shex:NodeConstraint ;
+                  shex:datatype xsd:string ] ]
+            ) ]
+        ) ;
+        shex:min 0 ; shex:max 1 ]
+      [ a shex:TripleConstraint ;
+        shex:predicate <http://www.w3.org/2006/vcard/ns#telephone> ;
+        shex:min 0 ; shex:max 1 ;
+        shex:valueExpr [
+          a shex:NodeConstraint ;
+          shex:nodeKind shex:iri ;
+          shex:pattern "^tel:\\+?[0-9.-]" ] ]
+      [ a shex:TripleConstraint ;
+        shex:predicate <http://www.w3.org/2006/vcard/ns#hasAddress> ;
+        shex:min 0 ; shex:max -1 ;
+        shex:valueExpr <#vcard_street-address> ]
+      <#UserProfile-TC-organization-name-1>
+      [ a shex:TripleConstraint ;
+        shex:predicate <http://www.w3.org/2006/vcard/ns#someInt> ;
+        shex:valueExpr [
+          a shex:NodeConstraint ;
+          shex:datatype <http://www.w3.org/2001/XMLSchema#integer> ] ]
+    )
+  ] .
+
+<#UserProfile-TC-webid-1>
+        a shex:TripleConstraint ;
+        shex:predicate <http://www.w3.org/ns/solid/terms#webid> ;
+        shex:valueExpr [ a shex:NodeConstraint ; shex:nodeKind shex:iri ] .
+
+<#UserProfile-TC-organization-name-1>
+        a shex:TripleConstraint ;
+        shex:predicate <http://www.w3.org/2006/vcard/ns#organization-name> ;
+        shex:min 0 ; shex:max 1 ;
+        shex:valueExpr [
+          a shex:NodeConstraint ;
+          shex:datatype xsd:string ] .
+
+
+<#vcard_street-address> a shex:Shape ;
+    shex:closed true ;
+    shex:expression [
+      a shex:EachOf ;
+      shex:expressions (
+        [ a shex:TripleConstraint ;
+          shex:min 0 ; shex:max 1 ;
+          shex:predicate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
+          shex:valueExpr [
+            a shex:NodeConstraint ;
+            shex:values (
+              <http://www.w3.org/2006/vcard/ns#StreetAddress>
+              <http://www.w3.org/2006/vcard/ns#MailingAddress>
+            ) ] ]
+        <#vcard_street-address-street-address-1>
+        [ a shex:OneOf ;
+          shex:expressions (
+            [ a shex:TripleConstraint ;
+              shex:predicate <http://www.w3.org/2006/vcard/ns#locality> ;
+              shex:min 0 ; shex:max 1 ;
+              shex:valueExpr [
+                a shex:NodeConstraint ;
+                shex:datatype xsd:string ] ]
+            [ a shex:TripleConstraint ;
+              shex:predicate <http://www.w3.org/2006/vcard/ns#region> ;
+              shex:min 0 ; shex:max 1 ;
+              shex:valueExpr [
+                a shex:NodeConstraint ;
+                shex:datatype xsd:string ] ]
+          ) ]
+        <#vcard_street-address-country-name-1>
+        [ a shex:TripleConstraint ;
+          shex:predicate <http://www.w3.org/2006/vcard/ns#postal-code> ;
+          shex:min 0 ; shex:max 1 ;
+          shex:valueExpr [
+            a shex:NodeConstraint ;
+            shex:datatype xsd:string ] ]
+      ) ] .
+
+<#vcard_street-address-street-address-1>
+          a shex:TripleConstraint ;
+          shex:predicate <http://www.w3.org/2006/vcard/ns#street-address> ;
+          shex:min 0 ; shex:max 1 ;
+          shex:valueExpr [
+            a shex:NodeConstraint ;
+            shex:datatype xsd:string ] .
+
+<#vcard_street-address-country-name-1>
+          a shex:TripleConstraint ;
+          shex:predicate <http://www.w3.org/2006/vcard/ns#country-name> ;
+          shex:min 0 ; shex:max 1 ;
+          shex:valueExpr <#vcard_country-name> .
+
+
+<#vcard_country-name> a shex:NodeConstraint ;
+  shex:values (
+    "Afghanistan"
+    "Belgium"
+    "CR"
+    "France"
+    "日本"
+    "United Kingdom"
+    "United States"
+    "Zimbabwe"
+  ) .
+
