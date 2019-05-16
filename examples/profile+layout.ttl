@@ -47,7 +47,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                   shex:datatype xsd:string ] ]
             ) ]
         ) ;
-        shex:min 1 ; shex:max -1 ]
+        shex:min 0 ; shex:max 1 ]
       [ a shex:TripleConstraint ;
         shex:predicate <http://www.w3.org/2006/vcard/ns#telephone> ;
         shex:min 0 ; shex:max 1 ;

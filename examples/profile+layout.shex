@@ -12,7 +12,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   (   foaf:name xsd:string MinLength 2
     | foaf:givenName xsd:string ;
       foaf:familyName xsd:string
-  )+ ;
+  )? ;
   vc:telephone IRI /^tel:\+?[0-9.-]/ ? ;
   vc:hasAddress @<#vcard_street-address> * ;
   vc:organization-name xsd:string ?
