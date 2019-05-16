@@ -154,8 +154,9 @@
 
     Promise.all([schemaP, layoutP, graphP]).then(both => {
       let [schema, layout, graph] = both
-      updateTryItLink()
+      updateTryItLink(); 
       const annotated = annotateSchema(schema, layout)
+      annotated._index = shexCore.Util.index(annotated);
       nowDoing = "validating data"
       let validator = shexCore.Validator.construct(annotated)
       let db = shexCore.Util.makeN3DB(graph)
@@ -244,7 +245,7 @@
   function annotateSchema (schema, layout) {
     schema = JSON.parse(JSON.stringify(schema)) // modify copy
     const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
-    let index = schema.index
+    let index = schema._index
     layout.getQuads(null, RDF_TYPE, LAYOUT).forEach(quad => {
       const annotated = layout.getQuads(quad.subject, ANNOTATION, null).map(t => {
         let elt = null
@@ -253,7 +254,7 @@
           if (!index)
             index = shexCore.Util.index(schema);
           let lookFor = quads[0].object.value
-          elt = index.shapeExprs.get(lookFor) || index.tripleExprs.get(lookFor)
+          elt = index.shapeExprs[lookFor] || index.tripleExprs[lookFor]
           console.log([elt, quads[0].object.value, index])
         } else {
           const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value

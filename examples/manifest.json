@@ -10,7 +10,7 @@
   {
     "title": "layout by ref (ShExC)",
     "desc": "profile schema with two nested addresses",
-    "schemaURL": "profile-labeled-TCs.shex",
+    "schemaURL": "profile-labeled-TCs-min.shex",
     "schemaFormat": "ShExC",
     "layoutURL": "profile-layout-ref.ttl",
     "dataURL": "profile1.ttl"
@@ -18,7 +18,7 @@
   {
     "title": "layout by ref (ShExJ)",
     "desc": "profile in ShExJ",
-    "schemaURL": "profile.json",
+    "schemaURL": "profile-labeled-TCs-min.json",
     "schemaFormat": "ShExJ",
     "layoutURL": "profile-layout-ref.ttl",
     "dataURL": "profile1.ttl"
@@ -26,8 +26,16 @@
   {
     "title": "layout by ref (ShExR)",
     "desc": "profile in ShExR",
-    "schemaURL": "profile.ttl",
+    "schemaURL": "profile-labeled-TCs-min.ttl",
     "schemaFormat": "ShExR",
+    "layoutURL": "profile-layout-ref.ttl",
+    "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "refs everywhere (ShExC)",
+    "desc": "triple expression labels on every triple expression",
+    "schemaURL": "profile-labeled-TCs.shex",
+    "schemaFormat": "ShExC",
     "layoutURL": "profile-layout-ref.ttl",
     "dataURL": "profile1.ttl"
   },

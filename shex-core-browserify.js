@@ -1680,22 +1680,22 @@ var ShExUtil = {
    */
   index: function (schema) {
     let index = {
-      shapeExprs: new Map(),
-      tripleExprs: new Map()
+      shapeExprs: [],
+      tripleExprs: []
     };
     let v = ShExUtil.Visitor();
 
     let oldVisitExpression = v.visitExpression;
     v.visitExpression = function (expression) {
       if (typeof expression === "object" && "id" in expression)
-        index.tripleExprs.set(expression.id, expression);
+        index.tripleExprs[expression.id] = expression;
       return oldVisitExpression.call(v, expression);
     };
 
     let oldVisitShapeExpr = v.visitShapeExpr;
     v.visitShapeExpr = v.visitValueExpr = function (shapeExpr, label) {
       if (typeof shapeExpr === "object" && "id" in shapeExpr)
-        index.shapeExprs.set(shapeExpr.id, shapeExpr);
+        index.shapeExprs[shapeExpr.id] = shapeExpr;
       return oldVisitShapeExpr.call(v, shapeExpr, label);
     };
 

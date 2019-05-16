@@ -1,8 +1,7 @@
 {
   "type": "Schema",
   "shapes": [
-    {
-      "id": "#UserProfile",
+    { "id": "#UserProfile",
       "type": "Shape",
       "expression": {
         "type": "EachOf",
@@ -91,8 +90,7 @@
         ]
       }
     },
-    {
-      "id": "#vcard_street-address",
+    { "id": "#vcard_street-address",
       "type": "Shape",
       "closed": true,
       "expression": {
@@ -166,8 +164,7 @@
         ]
       }
     },
-    {
-      "id": "#vcard_country-name",
+    { "id": "#vcard_country-name",
       "type": "NodeConstraint",
       "values": [
         { "value": "Afghanistan" },
