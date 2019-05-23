@@ -243,9 +243,9 @@
   }
 
   function annotateSchema (schema, layout) {
-    schema = JSON.parse(JSON.stringify(schema)) // modify copy
+    schema = JSON.parse(JSON.stringify(schema)) // modify copy, not original.
+    let index = shexCore.Util.index(schema); // update index to point at copy.
     const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
-    let index = schema._index
     layout.getQuads(null, RDF_TYPE, LAYOUT).forEach(quad => {
       const annotated = layout.getQuads(quad.subject, ANNOTATION, null).map(t => {
         let elt = null
@@ -263,7 +263,10 @@
         const newAnnots = layout.getQuads(t.object, null, null).filter(
           t => !t.predicate.equals(PATH)
         ).map(t => {
-          return {"type":"Annotation", "predicate":t.predicate.value, "object":Object.assign({"value":t.object.value}, t.object.datatypeString !== XSD_STRING.value ? {type: t.object.datatypeString} : {})}
+          return {
+            "type":"Annotation",
+            "predicate":t.predicate.value,
+            "object":Object.assign({"value":t.object.value}, t.object.datatypeString !== XSD_STRING.value ? {type: t.object.datatypeString} : {})}
         })
         elt.annotations = newAnnots // @@ merge, overriding same predicate values?
         return elt
