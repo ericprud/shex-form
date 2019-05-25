@@ -16,16 +16,14 @@
     <div class="guts">
       <div class="panel shexc">
         <h2>ShEx<select id="schemaFormat"><option value="ShExC">C</option><option value="ShExJ">J</option><option value="ShExR">R</option></select></h2>
-        <textarea></textarea>
-        <pre><code class="hljs">...</code></pre>
+        <div id="schema-editor"></div>
       </div>
       <div>
         <button id="shexc-to-shexj">⟲</button>
       </div>
       <div class="panel layout">
         <h2>Layout</h2>
-        <textarea></textarea>
-        <pre><code class="hljs">...</code></pre>
+        <div id="layout-editor"></div>
       </div>
       <div>
       <span id="start-shape-span">start shape: <select id="start-shape"></select></span>
@@ -42,8 +40,7 @@
       </div>
       <div class="panel data">
         <h2>Data</h2>
-        <textarea></textarea>
-        <pre><code class="hljs">...</code></pre>
+        <div id="data-editor"></div>
       </div>
     </div>
     <script src="./shex-core-browserify.js"></script>
@@ -52,6 +49,7 @@
     <script src="//www.w3.org/scripts/jquery/2.2.4/jquery.min.js"></script>
     <script src="./highlight-shexc-json.pack.js"></script>
     <script src="./ShExRSchema.js"></script>
+    <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
     <script src="./index.js"></script>
   </body>
 </html>

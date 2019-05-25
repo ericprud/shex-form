@@ -42,15 +42,32 @@
       link: "http://rawgit.com/shexSpec/shex.js/extends/packages/shex-webapp/doc/shex-simple.html?" },
     { label: "scala", name: "rdfshape",
       link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" }
-  ];
+  ]
 
-  const InputLoaders = [{parm: "schemaFormat", selector: "#schemaFormat" , parser: t => {
-    debugger
-    console.log(t)
-    t}},
-                        {parm: "schemaURL", selector: ".shexc  textarea", parser: parseSchema},
-                        {parm: "layoutURL", selector: ".layout textarea", parser: parseLayout},
-                        {parm: "dataURL",   selector: ".data   textarea", parser: parseData  }]
+  const SchemaEditor = ace.edit("schema-editor")
+  const LayoutEditor = ace.edit("layout-editor")
+  const DataEditor =   ace.edit("data-editor")
+  const Editables = {
+    schema: {type: "editor", parm: "schemaURL", selector: "#schema-editor", parser: parseSchema, mode: "ace/mode/shexc"},
+    layout: {type: "editor", parm: "layoutURL", selector: "#layout-editor", parser: parseLayout},
+    data  : {type: "editor", parm: "dataURL",   selector: "#data-editor"  , parser: parseData  }
+  }
+  const InputLoaders = [
+    {type: "select", parm: "schemaFormat", selector: "#schemaFormat" , parser: t => {
+      debugger
+      console.log(t)
+      t}, val: function (v) {
+        $(this.selector).val(v)
+      }}
+  ].concat(Object.values(Editables))
+
+  Object.values(Editables).forEach(edible => {
+    edible.editor = ace.edit($(edible.selector).get(0))
+    edible.editor.setTheme("ace/theme/dawn")
+    if (edible.mode)
+      edible.editor.session.setMode(edible.mode)
+    edible.val = v => v ? edible.editor.setValue(v, 1) : edible.editor.getValue()
+  })
 
   const CGIparms = location.search.substr(1).split(/[,&]/).map(
     pair => pair.split("=").map(decodeURIComponent)
@@ -61,16 +78,6 @@
   ).map(
     p => new URL(p[1], location) // just the value
   ).forEach(loadManifest)
-
-  // activate editor panel when clicked
-  $(".panel pre")
-    .height($(".shexc textarea").height())
-    .on("click", evt => {
-      let panel = $(evt.target).parents(".panel")
-      panel.find("pre").hide()
-      panel.find("textarea").show()
-      clearCurrentForm()
-  })
 
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
@@ -88,20 +95,19 @@
     const nowDoing = "Parsing " + format
     console.log(nowDoing)
     return new Promise((accept, reject) => {
-      let schemaText = $(".shexc textarea").val()
-      let schema, pretty
+      let schemaText = Editables.schema.val()
+      let schema
       try {
         if (format === "ShExC") {
           let parser = shexParser.construct(location.href, null, {index: true})
           schema = parser.parse(schemaText)
           schemaText = JSON.stringify(schema, null, 2)
-          pretty = hljs.highlight("json", schemaText, true)
           $("#schemaFormat").val("ShExJ")
         } else {
           schema = JSON.parse(schemaText)
           schema = relativeize(schema, schema._base || location.href)
           let w = new shexCore.Writer(null, {
-            simplifyParentheses: false,
+            simplifyParentheses: true,
             prefixes: schema._prefixes || {},
             base: schema._base || location.href
           })
@@ -109,20 +115,14 @@
             if (error) throw error;
             else schemaText = text;
           })
-          pretty = hljs.highlight("shexc", schemaText, true)
           $("#schemaFormat").val("ShExC")
         }
-        $(".shexc textarea").val(schemaText)
+        Editables.schema.val(schemaText)
 
         // keep track of prefixes for painting shape menu
         Meta.shexc.prefixes = schema._prefixes || {}
         Meta.shexc.base = schema._base || location.href
         paintShapeChoice(schema)
-
-        // show syntax highlighted schema
-        $(".shexc .hljs").html(pretty.value)
-        $(".shexc textarea").hide()
-        $(".shexc pre").show()
 
         accept(schema)
       } catch (e) {
@@ -169,7 +169,7 @@
         const r = new ValidationResultsRenderer(annotated)
         $("#form").empty().append(
           r.paintShapeExpression(results),
-          [$("<input/>", { type: "submit" })]
+          [$("<input/>", { type: "submit", value: "Update" })]
         ).on("submit", evt => {
           evt.preventDefault()
           console.log(r.edits())
@@ -189,9 +189,8 @@
         const newButton = $("<button/>").text(entry.title).attr("title", entry.desc).on("click", evt => {
           let target = $(evt.target)
           if (target.hasClass("selected")) {
-            [".shexc", ".layout", ".data"].forEach(sel => {
-              $(sel).find("textarea").val("").show()
-              $(sel).find("pre code").text("...")
+            Object.values(Editables).forEach(ed => {
+              ed.val("")
             })
             target.removeClass("selected")
           } else {
@@ -212,11 +211,11 @@
       const urlOrValue = entry[loader.parm]
       if (loader.parm.endsWith("URL")) {
         return fetch(new URL(urlOrValue, baseURL)).then(resp => resp.text()).then(text => {
-          $(loader.selector).val(text)
-          return loader.parser(text)
+          loader.val(text)
+          return loader.parser()
         })
       } else {
-        $(loader.selector).val(urlOrValue)
+        loader.val(urlOrValue)
         return Promise.resolve(urlOrValue)
       }
     })).then(all => {
@@ -255,7 +254,7 @@
             index = shexCore.Util.index(schema);
           let lookFor = quads[0].object.value
           elt = index.shapeExprs[lookFor] || index.tripleExprs[lookFor]
-          console.log([elt, quads[0].object.value, index])
+          // console.log([elt, quads[0].object.value, index])
         } else {
           const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
           elt = shexPath.search(pathStr)[0]
@@ -276,8 +275,8 @@
   }
 
   function getShExApiParms (span) {
-    const schema = $(".shexc textarea").val().replace(/^\n +/, "")
-    const data = $(".data textarea").val().replace(/^\n +/, "")
+    const schema = Editables.schema.val().replace(/^\n +/, "")
+    const data = Editables.data.val().replace(/^\n +/, "")
     const shapeMap = localName($("#focus-node").val(), Meta.data)
           + "@"
           + localName($("#start-shape").val(), Meta.shexc)
@@ -341,19 +340,16 @@
   function parseSchema () {
     const format = $("#schemaFormat").val()
     const nowDoing = "Parsing " + format
-    console.log(nowDoing)
     return new Promise((accept, reject) => {
-      const schemaText = $(".shexc textarea").val()
-      let schema, pretty
+      const schemaText = Editables.schema.val()
+      let schema
       try {
         if (format === "ShExC") {
           let parser = shexParser.construct(location.href, null, {index: true})
           schema = parser.parse(schemaText)
-          pretty = hljs.highlight("shexc", schemaText, true)
         } else if (format === "ShExJ") {
           schema = relativeize(JSON.parse(schemaText), location.href)
-          $(".shexc textarea").val(JSON.stringify(schema, null, 2)) // overwrite with abs links
-          pretty = hljs.highlight("json", schemaText, true)
+          Editables.schema.val(JSON.stringify(schema, null, 2)) // overwrite with abs links
         } else {
           let graph = new N3.Store()
           let parser = new N3.Parser({format: "application/turtle", baseIRI: location.href})
@@ -363,17 +359,11 @@
           let schemaRoot = graph.getQuads(null, shexCore.Util.RDF.type, "http://www.w3.org/ns/shex#Schema")[0].subject; // !!check
           let val = graphParser.validate(shexCore.Util.makeN3DB(graph), schemaRoot, shexCore.Validator.start); // start shape
           schema = shexCore.Util.ShExRtoShExJ(shexCore.Util.valuesToSchema(shexCore.Util.valToValues(val)));
-          pretty = hljs.highlight("shexc", schemaText, true)
         }
         // keep track of prefixes for painting shape menu
         Meta.shexc.prefixes = schema._prefixes || {}
         Meta.shexc.base = schema._base || location.href
         paintShapeChoice(schema)
-
-        // show syntax highlighted schema
-        $(".shexc .hljs").html(pretty.value)
-        $(".shexc textarea").hide()
-        $(".shexc pre").show()
 
         accept(schema)
       } catch (e) {
@@ -408,24 +398,24 @@
   }
 
   function parseLayout () {
-    return parseTurtle("Layout", Meta.layout, ".layout")
+    return parseTurtle("Layout", Meta.layout, Editables.layout)
   }
 
   function parseData () {
-    return parseTurtle("Data", Meta.data, ".data").then(graph => {
+    return parseTurtle("Data", Meta.data, Editables.data).then(graph => {
       paintNodeChoice(graph)
       return graph
     })
   }
 
-  function parseTurtle (label, meta, selector) {
+  function parseTurtle (label, meta, editable) {
     let nowDoing = "Parsing " + label
     return new Promise((accept, reject) => {
       N3.Parser._resetBlankNodeIds()
       const parser = new N3.Parser({ baseIRI: location.href })
       const graph = new N3.Store()
       parser.parse(
-        $(selector + " textarea").val(),
+        editable.val(),
         (error, quad, prefixes) => {
           if (error)
             reject(error)
@@ -435,12 +425,6 @@
             // keep track of prefixes for painting focus menu
             meta.prefixes = prefixes
             meta.base = parser._base
-
-            // syntax highlight
-            let result = hljs.highlight("shexc", $(selector + " textarea").val(), true)
-            $(selector + " .hljs").html(result.value)
-            $(selector + " textarea").hide()
-            $(selector + " pre").show()
 
             accept(graph)
           }
