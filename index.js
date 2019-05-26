@@ -66,7 +66,10 @@
     edible.editor.setTheme("ace/theme/dawn")
     if (edible.mode)
       edible.editor.session.setMode(edible.mode)
-    edible.val = v => v ? edible.editor.setValue(v, 1) : edible.editor.getValue()
+    edible.val = v =>
+      typeof v === "undefined"
+      ? edible.editor.getValue()
+      : edible.editor.setValue(v, 1)
   })
 
   const CGIparms = location.search.substr(1).split(/[,&]/).map(
