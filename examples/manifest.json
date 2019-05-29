@@ -62,5 +62,13 @@
     "schemaFormat": "ShExR",
     "layoutURL": "profile-layout-path.ttl",
     "dataURL": "profile1.ttl"
+  },
+  {
+    "title": "TimBL's form",
+    "desc": "from https://solid.github.io/form-playground/playground.html?uri=https%3A%2F%2Fwww.w3.org%2FPeople%2FBerners-Lee%2Fcard%23i&subject=https%3A%2F%2Fwww.w3.org%2FPeople%2FBerners-Lee%2Fcard%23i&form=https%3A%2F%2Ftimbl.com%2Ftimbl%2FPublic%2FTest%2FForms%2FindividualForm.ttl%23form1",
+    "schemaURL": "individualForm-0.shex",
+    "schemaFormat": "ShExC",
+    "layoutURL": "empty.ttl",
+    "dataURL": "timbl-card.ttl#i"
   }
 ]
