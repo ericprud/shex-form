@@ -1,0 +1,90 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <http://janeirodigital.com/layout#>
+BASE <http://a.example/schema1>
+
+<#byRef> a :Layout ; :annotation
+  [ :ref <#UserProfile-TC-webid-1> ;
+      rdfs:label "profile webid" ;
+      :readonly true ],
+
+  [ :ref <#fullNameField> ;
+      a ui:SingleLineTextField ;
+      ui:label "Name" ;
+      ui:size "40" ],
+
+  [ :ref <#roleField> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+  [ :ref <#fullNameFieldC> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+# ui:contents "Address"
+
+  [ :ref <#addresses> ;
+      dc:title "Address details" ],
+
+# ui:contents "Email"
+
+#  [ :ref <#eMails> ],
+
+# ui:contents "Phones" . ;
+
+#   [ :ref <#telephones> ],
+
+# ui:contents "General Notes" .
+
+[ :ref <#noteField> ;
+      a ui:MultiLineTextField ],
+
+
+
+  [ :ref <#id1409437207443> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+  [ :ref <#id1409437292400> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+  [ :ref <#id1409437421996> ;
+      a ui:SingleLineTextField ;
+      ui:size "25" ],
+
+  [ :ref <#id1409437467649> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+  [ :ref <#id1409437569420> ;
+      a ui:SingleLineTextField ;
+      ui:size "40" ],
+
+  [ :ref <#id1409437646712> ;
+      a ui:Classifier ;
+      ui:from rdf:Class ],
+
+
+
+  [ :ref <#emailValue> ;
+      a ui:EmailField ;
+      ui:label "email" ;
+      ui:size "50" ],
+
+  [ :ref <#emailType> ;
+      a ui:Classifier ;
+      ui:canMintNew "0" ;
+      ui:category vcard:Type ;
+      ui:from vcard:Type ],
+
+  [ :ref <#telephoneValue> ;
+      a ui:PhoneField ;
+      ui:size "50" ],
+
+  [ :ref <#telephoneType> ;
+      a ui:Classifier ;
+      ui:canMintNew "0" ;
+      ui:category vcard:Type ;
+      ui:from vcard:Type ]
+.
+

@@ -1,0 +1,44 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
+PREFIX : <#>
+
+<#form1> {
+  $<#fullNameField> vcard:fn xsd:string MaxLength 128 ;
+  $<#roleField> vcard:role MaxLength 128 ;
+  $<#fullNameFieldC> vcard:organization-name MaxLength 128 ;
+# ui:contents "Address"
+  $<#addresses> vcard:hasAddress @<#oneAddress>+ ;
+# ui:contents "Email"
+  $<#eMails> vcard:hasEmail @<#oneEMail>+ ;
+# ui:contents "Phones" .
+  $<#telephones> vcard:hasTelephone @<#onetelephone>+ ;
+# ui:contents "General Notes" .
+  $<#noteField> vcard:note xsd:string ;
+}
+
+
+<#oneAddress> {
+  $<#id1409437207443> vcard:street-address xsd:string MaxLength 128 ;
+  $<#id1409437292400> vcard:locality MaxLength 128 ;
+  $<#id1409437421996> vcard:postal xsd:string MaxLength 25 ;
+  $<#id1409437467649> vcard:region MaxLength 128 ;
+  $<#id1409437569420> vcard:country-name MaxLength 128 ;
+  $<#id1409437646712> dct:type IRI ;
+}
+
+
+<#oneEMail> {
+  $<#emailValue> vcard:value xsd:string ;
+  $<#emailType> dct:type IRI ;
+}
+
+
+<#onetelephone> {
+  $<#telephoneValue> vcard:value xsd:string ;
+  $<#telephoneType> dct:type IRI ;
+}
+
