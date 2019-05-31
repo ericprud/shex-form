@@ -23,18 +23,32 @@ PREFIX : <#>
   $<#id1409437421996> vcard:postal-code xsd:string MaxLength 25 ;
   $<#id1409437467649> vcard:region MaxLength 128 ;
   $<#id1409437569420> vcard:country-name MaxLength 128 ? ;
-  $<#id1409437646712> dct:type IRI ;
+  $<#id1409437646712> dct:type [vcard:Home vcard:Work] ;
 }
 
 
 <#oneEMail> {
-  $<#emailValue> vcard:value IRI ;
+  $<#emailValue> vcard:value @<#contactTypes> ;
   $<#emailType> dct:type IRI ;
 }
 
 
 <#onetelephone> {
-  $<#telephoneValue> vcard:value IRI ;
+  $<#telephoneValue> vcard:value @<#contactTypes> ;
   $<#telephoneType> dct:type IRI ;
 }
+
+<#contactTypes> [
+  vcard:Dom
+  vcard:Home
+  vcard:ISDN
+  vcard:Internet
+  vcard:Intl
+  vcard:Label
+  vcard:Parcel
+  vcard:Postal
+  vcard:Pref
+  vcard:Work
+  vcard:X400
+]
 

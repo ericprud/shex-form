@@ -11,15 +11,15 @@ PREFIX : <#>
   $<#fullNameField> vcard:fn xsd:string MaxLength 128
         // a ui:SingleLineTextField
         // ui:label "Name"
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#roleField> vcard:role MaxLength 128 ?
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#fullNameFieldC> vcard:organization-name MaxLength 128 ?
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#addresses> vcard:hasAddress @<#oneAddress>+
         // ui:contents "Address"
@@ -41,26 +41,25 @@ PREFIX : <#>
 <#oneAddress> {
   $<#id1409437207443> vcard:street-address xsd:string MaxLength 128
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#id1409437292400> vcard:locality MaxLength 128
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#id1409437421996> vcard:postal-code xsd:string MaxLength 25
         // a ui:SingleLineTextField
-        // ui:size "25" ;
+        // ui:size 25 ;
 
   $<#id1409437467649> vcard:region MaxLength 128
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
   $<#id1409437569420> vcard:country-name MaxLength 128 ?
         // a ui:SingleLineTextField
-        // ui:size "40" ;
+        // ui:size 40 ;
 
-  $<#id1409437646712> dct:type IRI
-        // a ui:Classifier
+  $<#id1409437646712> dct:type [vcard:Home vcard:Work]
         // ui:from rdf:Class ;
 
 }
@@ -72,10 +71,9 @@ PREFIX : <#>
   $<#emailValue> vcard:value IRI
         // a ui:EmailField
         // ui:label "email"
-        // ui:size "50" ;
+        // ui:size 50 ;
 
-  $<#emailType> dct:type IRI
-        // a ui:Classifier
+  $<#emailType> dct:type @<#contactTypes>
         // ui:canMintNew "0"
         // ui:category vcard:Type
         // ui:from vcard:Type ;
@@ -87,13 +85,26 @@ PREFIX : <#>
 <#onetelephone> {
   $<#telephoneValue> vcard:value IRI
         // a ui:PhoneField
-        // ui:size "50" ;
+        // ui:size 50 ;
 
-  $<#telephoneType> dct:type IRI
-        // a ui:Classifier
+  $<#telephoneType> dct:type @<#contactTypes>
         // ui:canMintNew "0"
         // ui:category vcard:Type
         // ui:from vcard:Type ;
 }
 ##############################
+
+<#contactTypes> [
+  vcard:Dom
+  vcard:Home
+  vcard:ISDN
+  vcard:Internet
+  vcard:Intl
+  vcard:Label
+  vcard:Parcel
+  vcard:Postal
+  vcard:Pref
+  vcard:Work
+  vcard:X400
+]
 

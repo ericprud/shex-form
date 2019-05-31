@@ -18,6 +18,9 @@
   const IRI_UiSize = IRI_Ui + "size"
   const IRI_UiLabel = IRI_Ui + "label"
   const IRI_UiContents = IRI_Ui + "contents"
+  const IRI_UiType = IRI_RdfType
+  const IRI_UiType_input = IRI_Ui + "SingleLineTextField"
+  const IRI_UiType_textarea = IRI_Ui + "MultiLineTextField"
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   const F = N3.DataFactory
@@ -609,6 +612,19 @@
         let size = (tc.annotations || []).find(a => a.predicate === IRI_UiSize)
         if (size)
           valueHtml.forEach(h => h.attr("size", size.object.value))
+        let type = (tc.annotations || []).find(a => a.predicate === IRI_UiType)
+        if (type)
+          switch (type.object) {
+          case (IRI_UiType_input):
+          case (IRI_Ui + "EmailField"):
+          case (IRI_Ui + "PhoneField"):
+            break
+          case (IRI_UiType_textarea):
+            valueHtml.map(h => h.attr("size", 2))
+            break
+          default:
+            throw Error("Unrecognized UI type: " + type.object)
+          }
         ret.append(valueHtml)
       }
       return [ret]
