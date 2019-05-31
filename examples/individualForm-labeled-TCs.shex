@@ -10,13 +10,9 @@ PREFIX : <#>
   $<#fullNameField> vcard:fn xsd:string MaxLength 128 ;
   $<#roleField> vcard:role MaxLength 128 ? ;
   $<#fullNameFieldC> vcard:organization-name MaxLength 128 ? ;
-# ui:contents "Address"
   $<#addresses> vcard:hasAddress @<#oneAddress>+ ;
-# ui:contents "Email"
   $<#eMails> vcard:hasEmail @<#oneEMail>+ ;
-# ui:contents "Phones" .
   $<#telephones> vcard:hasTelephone @<#onetelephone>+ ;
-# ui:contents "General Notes" .
   $<#noteField> vcard:note xsd:string ? ;
 }
 

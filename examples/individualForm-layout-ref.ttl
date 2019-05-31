@@ -7,83 +7,79 @@ PREFIX : <http://janeirodigital.com/layout#>
 
 <#individualForm-byRef> a :Layout ; :annotation
   [ :ref <#fullNameField> ;
-      a ui:SingleLineTextField ;
-      ui:label "Name" ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:label "Name" ;
+    ui:size "40" ],
 
   [ :ref <#roleField> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#fullNameFieldC> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
-
-# ui:contents "Address"
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#addresses> ;
-      dc:title "Address details" ],
+    ui:contents "Address" ;
+    dc:title "Address details" ],
 
-# ui:contents "Email"
+  [ :ref <#eMails> ;
+    ui:contents "Email" ],
 
-#  [ :ref <#eMails> ],
+  [ :ref <#telephones> ;
+    ui:contents "Phones" ],
 
-# ui:contents "Phones" . ;
-
-#   [ :ref <#telephones> ],
-
-# ui:contents "General Notes" .
-
-[ :ref <#noteField> ;
-      a ui:MultiLineTextField ],
+  [ :ref <#noteField> ;
+    a ui:MultiLineTextField ;
+    ui:contents "General Notes" ],
 
 
 
   [ :ref <#id1409437207443> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#id1409437292400> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#id1409437421996> ;
-      a ui:SingleLineTextField ;
-      ui:size "25" ],
+    a ui:SingleLineTextField ;
+    ui:size "25" ],
 
   [ :ref <#id1409437467649> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#id1409437569420> ;
-      a ui:SingleLineTextField ;
-      ui:size "40" ],
+    a ui:SingleLineTextField ;
+    ui:size "40" ],
 
   [ :ref <#id1409437646712> ;
-      a ui:Classifier ;
-      ui:from rdf:Class ],
+    a ui:Classifier ;
+    ui:from rdf:Class ],
 
 
 
   [ :ref <#emailValue> ;
-      a ui:EmailField ;
-      ui:label "email" ;
-      ui:size "50" ],
+    a ui:EmailField ;
+    ui:label "email" ;
+    ui:size "50" ],
 
   [ :ref <#emailType> ;
-      a ui:Classifier ;
-      ui:canMintNew "0" ;
-      ui:category vcard:Type ;
-      ui:from vcard:Type ],
+    a ui:Classifier ;
+    ui:canMintNew "0" ;
+    ui:category vcard:Type ;
+    ui:from vcard:Type ],
 
   [ :ref <#telephoneValue> ;
-      a ui:PhoneField ;
-      ui:size "50" ],
+    a ui:PhoneField ;
+    ui:size "50" ],
 
   [ :ref <#telephoneType> ;
-      a ui:Classifier ;
-      ui:canMintNew "0" ;
-      ui:category vcard:Type ;
-      ui:from vcard:Type ]
+    a ui:Classifier ;
+    ui:canMintNew "0" ;
+    ui:category vcard:Type ;
+    ui:from vcard:Type ]
 .
 

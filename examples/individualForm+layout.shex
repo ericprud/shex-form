@@ -21,22 +21,18 @@ PREFIX : <#>
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
-# ui:contents "Address"
-
   $<#addresses> vcard:hasAddress @<#oneAddress>+
+        // ui:contents "Address"
         // dc:title "Address details" ;
 
-# ui:contents "Email"
+  $<#eMails> vcard:hasEmail @<#oneEMail>+
+        // ui:contents "Email" ;
 
-  $<#eMails> vcard:hasEmail @<#oneEMail>+ ;
-
-# ui:contents "Phones" .
-
-  $<#telephones> vcard:hasTelephone @<#onetelephone>+ ;
-
-# ui:contents "General Notes" .
+  $<#telephones> vcard:hasTelephone @<#onetelephone>+
+        // ui:contents "Phones" ;
 
   $<#noteField> vcard:note xsd:string ?
+        // ui:contents "General Notes"
         // a ui:MultiLineTextField ;
 
 } // dc:title "Contact Details"

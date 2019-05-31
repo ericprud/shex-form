@@ -16,6 +16,7 @@
   const FACETS_supported = FACETS_string.concat(FACETS_numericRange).concat(FACETS_numericLength)
   const IRI_Ui = "http://www.w3.org/ns/ui#"
   const IRI_UiLabel = IRI_Ui + "label"
+  const IRI_UiContents = IRI_Ui + "contents"
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   const F = N3.DataFactory
@@ -445,7 +446,7 @@
   // convenience functions
 
   function findLabel (shexpr) {
-    return (shexpr.annotations || []).find(a => a.predicate === IRI_UiLabel)
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_UiLabel || a.predicate === IRI_UiContents)
   }
 
   function localName (iri, meta) {
