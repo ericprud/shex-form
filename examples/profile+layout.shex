@@ -1,13 +1,13 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
 PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 
 <#UserProfile> {
   solid:webid IRI
-    // rdfs:label "profile webid"
+    // ui:label "profile webid"
     // :readonly true ;
   (   foaf:name xsd:string MinLength 2
     | foaf:givenName xsd:string ;
@@ -16,20 +16,20 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   vc:telephone IRI /^tel:\+?[0-9.-]/ ? ;
   vc:hasAddress @<#vcard_street-address> * ;
   vc:organization-name xsd:string ?
-    // rdfs:label "company" ;
+    // ui:label "company" ;
   vc:someInt xsd:integer ;
-} // rdfs:label "User Profile"
+} // ui:label "User Profile"
 
 <#vcard_street-address> CLOSED {
   a [vc:StreetAddress vc:MailingAddress] ? ;
-  vc:street-address xsd:string ? // rdfs:label "street" ;
+  vc:street-address xsd:string ? // ui:label "street" ;
   (   vc:locality xsd:string ? ;
     | vc:region xsd:string ?
   ) ;
   vc:country-name @<#vcard_country-name> ?
-    // rdfs:label "country" ;
+    // ui:label "country" ;
   vc:postal-code xsd:string ?
-} // rdfs:label "Address"
+} // ui:label "Address"
 
 <#vcard_country-name> [
   "Afghanistan"

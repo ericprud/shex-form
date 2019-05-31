@@ -1,19 +1,19 @@
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
 
 <#byPath> a :Layout ; :annotation
   [ :path "@<#UserProfile>" ;
-      rdfs:label "User Profile" ],
+    ui:label "User Profile" ],
   [ :path "@<#UserProfile>/<http://www.w3.org/ns/solid/terms#webid>" ;
-      rdfs:label "profile webid" ;
-      :readonly true ],
+    ui:label "profile webid" ;
+    :readonly true ],
   [ :path "@<#UserProfile>/<http://www.w3.org/2006/vcard/ns#organization-name>" ;
-      rdfs:label "company" ],
+    ui:label "company" ],
 
   [ :path "@<#vcard_street-address>" ;
-      rdfs:label "Address" ],
+    ui:label "Address" ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#street-address>" ;
-      rdfs:label "street" ],
+    ui:label "street" ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#country-name>" ;
-      rdfs:label "country" ]
+    ui:label "country" ]
 .

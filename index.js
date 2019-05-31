@@ -9,12 +9,13 @@
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
-  const IRI_RdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label"
   const IRI_XsdDecimal = IRI_Xsd + "decimal"
   const FACETS_string = ["pattern", "length", "minlength", "maxlength"]
   const FACETS_numericRange = ["minexclusive", "mininclusive", "maxexclusive", "maxinclusive"]
   const FACETS_numericLength = ["totaldigits", "fractiondigits"]
   const FACETS_supported = FACETS_string.concat(FACETS_numericRange).concat(FACETS_numericLength)
+  const IRI_Ui = "http://www.w3.org/ns/ui#"
+  const IRI_UiLabel = IRI_Ui + "label"
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   const F = N3.DataFactory
@@ -444,7 +445,7 @@
   // convenience functions
 
   function findLabel (shexpr) {
-    return (shexpr.annotations || []).find(a => a.predicate === IRI_RdfsLabel)
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_UiLabel)
   }
 
   function localName (iri, meta) {

@@ -1,20 +1,20 @@
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
 BASE <http://a.example/schema1>
 
 <#byRef> a :Layout ; :annotation
   [ :ref <#UserProfile> ;
-      rdfs:label "User Profile" ],
+    ui:label "User Profile" ],
   [ :ref <#UserProfile-TC-webid-1> ;
-      rdfs:label "profile webid" ;
-      :readonly true ],
+    ui:label "profile webid" ;
+    :readonly true ],
   [ :ref <#UserProfile-TC-organization-name-1> ;
-      rdfs:label "company" ],
+    ui:label "company" ],
 
   [ :ref <#vcard_street-address> ;
-      rdfs:label "Address" ],
+    ui:label "Address" ],
   [ :ref <#vcard_street-address-street-address-1> ;
-      rdfs:label "street" ],
+    ui:label "street" ],
   [ :ref <#vcard_street-address-country-name-1> ;
-      rdfs:label "country" ]
+    ui:label "country" ]
 .

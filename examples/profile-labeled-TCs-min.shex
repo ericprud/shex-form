@@ -1,7 +1,6 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX : <http://janeirodigital.com/layout#>
 PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 BASE <http://a.example/schema1>

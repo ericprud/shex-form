@@ -1,5 +1,5 @@
 PREFIX shex: <http://www.w3.org/ns/shex#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 [] a shex:Schema ;
@@ -9,7 +9,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
   shex:annotation (
     [ a shex:Annotation ;
         shex:object "User Profile" ;
-        shex:predicate rdfs:label ]
+        shex:predicate ui:label ]
     ) ;
   shex:expression [
     a shex:EachOf ;
@@ -18,7 +18,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
         shex:predicate <http://www.w3.org/ns/solid/terms#webid> ;
         shex:annotation (
           [ a shex:Annotation ;
-            shex:predicate rdfs:label ;
+            shex:predicate ui:label ;
             shex:object "profile webid" ]
           [ a shex:Annotation ;
             shex:predicate <http://janeirodigital.com/layout#readonly> ;
@@ -63,7 +63,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
         shex:predicate <http://www.w3.org/2006/vcard/ns#organization-name> ;
         shex:annotation (
           [ a shex:Annotation ;
-            shex:predicate rdfs:label ;
+            shex:predicate ui:label ;
             shex:object "company" ]
         );
         shex:min 0 ; shex:max 1 ;
@@ -81,7 +81,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 <#vcard_street-address> a shex:Shape ;
     shex:annotation (
       [ a shex:Annotation ;
-        shex:predicate rdfs:label ;
+        shex:predicate ui:label ;
         shex:object "Address" ]
     );
     shex:closed true ;
@@ -102,7 +102,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
           shex:min 0 ; shex:max 1 ;
           shex:annotation (
             [ a shex:Annotation ;
-              shex:predicate rdfs:label ;
+              shex:predicate ui:label ;
               shex:object "street" ]
           );
           shex:valueExpr [
@@ -127,7 +127,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
           shex:predicate <http://www.w3.org/2006/vcard/ns#country-name> ;
           shex:annotation (
             [ a shex:Annotation ;
-              shex:predicate rdfs:label ;
+              shex:predicate ui:label ;
               shex:object "country" ]
           ) ;
           shex:min 0 ; shex:max 1 ;
