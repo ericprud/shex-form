@@ -15,6 +15,7 @@
   const FACETS_numericLength = ["totaldigits", "fractiondigits"]
   const FACETS_supported = FACETS_string.concat(FACETS_numericRange).concat(FACETS_numericLength)
   const IRI_Ui = "http://www.w3.org/ns/ui#"
+  const IRI_UiSize = IRI_Ui + "size"
   const IRI_UiLabel = IRI_Ui + "label"
   const IRI_UiContents = IRI_Ui + "contents"
   const IRI_Layout = "http://janeirodigital.com/layout#"
@@ -605,6 +606,9 @@
         let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
         if (ro)
           valueHtml.forEach(h => h.attr("readonly", "readonly"))
+        let size = (tc.annotations || []).find(a => a.predicate === IRI_UiSize)
+        if (size)
+          valueHtml.forEach(h => h.attr("size", size.object.value))
         ret.append(valueHtml)
       }
       return [ret]
@@ -799,6 +803,9 @@
             let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
             if (ro)
               valueHtml.forEach(h => h.attr("readonly", "readonly"))
+            let size = (tc.annotations || []).find(a => a.predicate === IRI_UiSize)
+            if (size)
+              valueHtml.forEach(h => h.attr("size", size.object.value))
             return acc.concat(valueHtml)
           } else {
             throw Error("PF")
