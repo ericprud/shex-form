@@ -28,14 +28,14 @@ PREFIX : <#>
 
 
 <#oneEMail> {
-  $<#emailValue> vcard:value @<#contactTypes> ;
-  $<#emailType> dct:type IRI ;
+  $<#emailValue> vcard:value IRI ;
+  $<#emailType> dct:type @<#contactTypes> ;
 }
 
 
 <#onetelephone> {
-  $<#telephoneValue> vcard:value @<#contactTypes> ;
-  $<#telephoneType> dct:type IRI ;
+  $<#telephoneValue> vcard:value IRI ;
+  $<#telephoneType> dct:type @<#contactTypes> ;
 }
 
 <#contactTypes> [

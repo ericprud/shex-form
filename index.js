@@ -277,15 +277,26 @@
           t => !t.predicate.equals(PATH)
         ).map(t => {
           return {
-            "type":"Annotation",
-            "predicate":t.predicate.value,
-            "object":Object.assign({"value":t.object.value}, t.object.datatypeString !== XSD_STRING.value ? {type: t.object.datatypeString} : {})}
+            "type": "Annotation",
+            "predicate": t.predicate.value,
+            "object": RDFJStoJSONLD(t.object)}
         })
         elt.annotations = newAnnots // @@ merge, overriding same predicate values?
         return elt
       })
     })
     return schema
+  }
+
+  function RDFJStoJSONLD (rdfjsTerm) {
+    return rdfjsTerm.termType === "Literal"
+      ? Object.assign({"value":rdfjsTerm.value},
+                      rdfjsTerm.datatypeString !== XSD_STRING.value
+                      ? {type: rdfjsTerm.datatypeString}
+                      : {})
+      : rdfjsTerm.termType === "BlankNode"
+      ? "_:" + rdfjsTerm.value
+      : rdfjsTerm.value
   }
 
   function getShExApiParms (span) {
