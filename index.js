@@ -10,6 +10,11 @@
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
   const IRI_RdfsLabel = "http://www.w3.org/2000/01/rdf-schema#label"
+  const IRI_XsdDecimal = IRI_Xsd + "decimal"
+  const FACETS_string = ["pattern", "length", "minlength", "maxlength"]
+  const FACETS_numericRange = ["minexclusive", "mininclusive", "maxexclusive", "maxinclusive"]
+  const FACETS_numericLength = ["totaldigits", "fractiondigits"]
+  const FACETS_supported = FACETS_string.concat(FACETS_numericRange).concat(FACETS_numericLength)
   const IRI_Layout = "http://janeirodigital.com/layout#"
   const IRI_LayoutReadOnly = IRI_Layout + "readonly"
   const F = N3.DataFactory
@@ -501,7 +506,9 @@
     }
 
     function paintNodeConstraint (nc) {
-      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
+      const facets = Object.keys(nc).filter(f => FACETS_supported.includes(f))
+
+      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc || facets.length > 0))
         throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
 
       function validatedInput (makeTerm) {
@@ -542,6 +549,18 @@
               : localName(v, Meta.shexc) // an IRI
           return $("<option/>", {value: vStr}).text(vStr)
         }))]
+
+      let list = facets.filter(f => FACETS_numericRange.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc[list[0]].datatype)]
+
+      list = facets.filter(f => FACETS_numericLength.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + IRI_XsdDecimal)]
+
+      list = facets.filter(f => FACETS_string.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + IRI_XsdString)]
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
     }
@@ -657,7 +676,9 @@
     }
 
     function paintNodeConstraint (nc, tested) {
-      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc))
+      const facets = Object.keys(nc).filter(f => FACETS_supported.includes(f))
+
+      if (!("datatype" in nc || "nodeKind" in nc || "values" in nc || facets.length > 0))
         throw Error("paintNodeConstraint(" + JSON.stringify(nc, null, 2) + ")")
 
       function validatedInput (makeTerm) {
@@ -710,6 +731,18 @@
         })
         return [jElt]
       }
+
+      let list = facets.filter(f => FACETS_numericRange.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => scalarize(s, nc[list[0]].datatype)).val(tested.object.value)]
+
+      list = facets.filter(f => FACETS_numericLength.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => scalarize(s, IRI_XsdDecimal)).val(tested.object.value)]
+
+      list = facets.filter(f => FACETS_string.includes(f))
+      if (list.length > 0)
+        return [validatedInput(s => scalarize(s, IRI_XsdString)).val(tested.object.value)]
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
     }
