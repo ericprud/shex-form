@@ -95,9 +95,9 @@ card:i
 
     vcard:fn  "Tim Berners-Lee";
     vcard:hasTelephone
-         [ a vcard:Work; vcard:value <tel:+1-617-253-5702> ];
+         [ dct:type vcard:Work; vcard:value <tel:+1-617-253-5702> ];
     vcard:hasAddress
-        [ a    vcard:Work;
+        [ dct:type    vcard:Work;
         vcard:locality "Cambridge";
         vcard:postal-code "02139";
         vcard:region "MA";
@@ -126,13 +126,14 @@ card:i
 
 # Using FOAF vocabulary:
 
-    a foaf:Person;
+    dct:type foaf:Person;
     foaf:based_near [geo:lat "42.361860"; geo:long "-71.091840"];
 
     # The idea is that this is the one I would suggest you use and
     # I use for myself, which can lead to others.
     :preferredURI "https://www.w3.org/People/Berners-Lee/card#i";
 
+    vcard:hasEmail [ dct:type vcard:Work; vcard:value <mailto:timbl@w3.org> ];
     foaf:mbox <mailto:timbl@w3.org>;
     foaf:mbox_sha1sum "965c47c5a70db7407210cef6e4e6f5374a525c5c";
     foaf:openid <https://www.w3.org/People/Berners-Lee/>;
@@ -230,8 +231,8 @@ card:i
 
 ##### Things I am involved in -- DOAP
 
-card:i is doap:developer of <http://www.w3.org/2000/10/swap/data#Cwm>,
-    <http://dig.csail.mit.edu/2005/ajar/ajaw/data#Tabulator>.
+<http://www.w3.org/2000/10/swap/data#Cwm> doap:developer card:i .
+<http://dig.csail.mit.edu/2005/ajar/ajaw/data#Tabulator> doap:developer card:i .
 
 
 # BBC Catalogue links:   # Clumsy .. need to give people URIs. Now offline :-(

@@ -1,12 +1,12 @@
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
-BASE <http://a.example/schema1>
+# BASE <http://a.example/schema1>
 
-<#byRef> a :Layout ; :annotation
-  [ :ref <#UserProfile-TC-webid-1> ;
-      rdfs:label "profile webid" ;
-      :readonly true ],
-
+<#individualForm-byRef> a :Layout ; :annotation
   [ :ref <#fullNameField> ;
       a ui:SingleLineTextField ;
       ui:label "Name" ;

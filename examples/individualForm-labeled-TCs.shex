@@ -8,8 +8,8 @@ PREFIX : <#>
 
 <#form1> {
   $<#fullNameField> vcard:fn xsd:string MaxLength 128 ;
-  $<#roleField> vcard:role MaxLength 128 ;
-  $<#fullNameFieldC> vcard:organization-name MaxLength 128 ;
+  $<#roleField> vcard:role MaxLength 128 ? ;
+  $<#fullNameFieldC> vcard:organization-name MaxLength 128 ? ;
 # ui:contents "Address"
   $<#addresses> vcard:hasAddress @<#oneAddress>+ ;
 # ui:contents "Email"
@@ -17,28 +17,28 @@ PREFIX : <#>
 # ui:contents "Phones" .
   $<#telephones> vcard:hasTelephone @<#onetelephone>+ ;
 # ui:contents "General Notes" .
-  $<#noteField> vcard:note xsd:string ;
+  $<#noteField> vcard:note xsd:string ? ;
 }
 
 
 <#oneAddress> {
   $<#id1409437207443> vcard:street-address xsd:string MaxLength 128 ;
   $<#id1409437292400> vcard:locality MaxLength 128 ;
-  $<#id1409437421996> vcard:postal xsd:string MaxLength 25 ;
+  $<#id1409437421996> vcard:postal-code xsd:string MaxLength 25 ;
   $<#id1409437467649> vcard:region MaxLength 128 ;
-  $<#id1409437569420> vcard:country-name MaxLength 128 ;
+  $<#id1409437569420> vcard:country-name MaxLength 128 ? ;
   $<#id1409437646712> dct:type IRI ;
 }
 
 
 <#oneEMail> {
-  $<#emailValue> vcard:value xsd:string ;
+  $<#emailValue> vcard:value IRI ;
   $<#emailType> dct:type IRI ;
 }
 
 
 <#onetelephone> {
-  $<#telephoneValue> vcard:value xsd:string ;
+  $<#telephoneValue> vcard:value IRI ;
   $<#telephoneType> dct:type IRI ;
 }
 

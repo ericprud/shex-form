@@ -13,11 +13,11 @@ PREFIX : <#>
         // ui:label "Name"
         // ui:size "40" ;
 
-  $<#roleField> vcard:role MaxLength 128
+  $<#roleField> vcard:role MaxLength 128 ?
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
-  $<#fullNameFieldC> vcard:organization-name MaxLength 128
+  $<#fullNameFieldC> vcard:organization-name MaxLength 128 ?
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
@@ -36,7 +36,7 @@ PREFIX : <#>
 
 # ui:contents "General Notes" .
 
-  $<#noteField> vcard:note xsd:string
+  $<#noteField> vcard:note xsd:string ?
         // a ui:MultiLineTextField ;
 
 } // dc:title "Contact Details"
@@ -51,7 +51,7 @@ PREFIX : <#>
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
-  $<#id1409437421996> vcard:postal xsd:string MaxLength 25
+  $<#id1409437421996> vcard:postal-code xsd:string MaxLength 25
         // a ui:SingleLineTextField
         // ui:size "25" ;
 
@@ -59,7 +59,7 @@ PREFIX : <#>
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
-  $<#id1409437569420> vcard:country-name MaxLength 128
+  $<#id1409437569420> vcard:country-name MaxLength 128 ?
         // a ui:SingleLineTextField
         // ui:size "40" ;
 
@@ -73,7 +73,7 @@ PREFIX : <#>
 
 
 <#oneEMail> {
-  $<#emailValue> vcard:value xsd:string
+  $<#emailValue> vcard:value IRI
         // a ui:EmailField
         // ui:label "email"
         // ui:size "50" ;
@@ -89,7 +89,7 @@ PREFIX : <#>
 ##############################
 
 <#onetelephone> {
-  $<#telephoneValue> vcard:value xsd:string
+  $<#telephoneValue> vcard:value IRI
         // a ui:PhoneField
         // ui:size "50" ;
 
