@@ -10,6 +10,8 @@
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
   const IRI_XsdDecimal = IRI_Xsd + "decimal"
+  const IRI_Dc = "http://purl.org/dc/elements/1.1/"
+  const IRI_DcTitle = IRI_Dc + "title"
   const FACETS_string = ["pattern", "length", "minlength", "maxlength"]
   const FACETS_numericRange = ["minexclusive", "mininclusive", "maxexclusive", "maxinclusive"]
   const FACETS_numericLength = ["totaldigits", "fractiondigits"]
@@ -65,9 +67,8 @@
   }
   const InputLoaders = [
     {type: "select", parm: "schemaFormat", selector: "#schemaFormat" , parser: t => {
-      debugger
       console.log(t)
-      t}, val: function (v) {
+      return t}, val: function (v) {
         $(this.selector).val(v)
       }}
   ].concat(Object.values(Editables))
@@ -95,7 +96,7 @@
 
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
-    Promise.all(getSchemaPromises()).catch(alert)
+    getSchemaPromises().catch(alert)
   }).on("change", clearCurrentForm)
 
   // re-generate focus node select whenever clicked
@@ -148,7 +149,7 @@
   // [↙] button
   $("#shexj-to-form").on("click", evt => {
     // get schema from ShExC
-    Promise.all(getSchemaPromises()).then(
+    getSchemaPromises().then(
       pair => {
         let [schema, layout] = pair
         updateTryItLink()
@@ -163,11 +164,11 @@
 
   // [←] button
   $("#data-to-form").on("click", evt => {
-    let [schemaP, layoutP] = getSchemaPromises()
+    let schemaPz = getSchemaPromises()
     let graphP = parseData()
 
-    Promise.all([schemaP, layoutP, graphP]).then(both => {
-      let [schema, layout, graph] = both
+    Promise.all([schemaPz, graphP]).then(both => {
+      let [[schema, layout], graph] = both
       updateTryItLink(); 
       const annotated = annotateSchema(schema, layout)
       annotated._index = shexCore.Util.index(annotated);
@@ -411,7 +412,11 @@
   }
 
   function getSchemaPromises () {
-    return [parseSchema().then(schemaParsed), parseLayout()]
+    return Promise.all([parseSchema().then(schemaParsed), parseLayout()]).then(pair => {
+      $("#a-ui").attr("href", "data:text/turtle;charset=utf-8;base64,"
+                      + btoa(ShExToUi(annotateSchema(pair[0], pair[1]))))
+      return pair
+    })
   }
 
   function schemaParsed (schema) {
@@ -462,6 +467,10 @@
 
   function findLabel (shexpr) {
     return (shexpr.annotations || []).find(a => a.predicate === IRI_UiLabel || a.predicate === IRI_UiContents)
+  }
+
+  function findTitle (shexpr) {
+    return (shexpr.annotations || []).find(a => a.predicate === IRI_DcTitle || a.predicate === IRI_UiContents)
   }
 
   function localName (iri, meta) {
@@ -681,6 +690,12 @@
       return schema.shapes.find(se => se.id === goal)
     }
 
+    function derefShapeExpression (shapeExpr) {
+      return typeof shapeExpr === "string"
+        ? findShapeExpression(shexpr)
+        : shapeExpr
+    }
+
     /* All paint* functions return an array of jquery nodes.
      */
 
@@ -839,5 +854,148 @@
           }
         }, []))]
     }
+  }
+
+  function ShExToUi (schema) {
+    const graph = new N3.Store()
+    const IRI_ui = "http://www.w3.org/ns/ui#"
+    const IRI_dc = "http://purl.org/dc/elements/1.1/"
+    const IRI_rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    const IRI_this = window.location + "#"
+/*    const v = shexCore.Util.Visitor()
+    wrap("visitShape", visitShape, null)
+    v.visitShapeExpr(schema.shapes[0]) */
+
+    const rootFormTerm = F.namedNode(IRI_this + "formRoot")
+
+    const start = "start" in schema
+          ? derefShapeExpression(schema.start)
+          : schema.shapes[0]
+
+    walkShape(start, rootFormTerm, localName(start.id, Meta.shexc))
+
+    const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: IRI_ui, dc: IRI_dc } })
+    writer.addQuads(graph.getQuads())
+    let ret
+    writer.end((error, result) => ret = result)
+    console.log(ret)
+    return ret
+
+    function walkShape (shape, formTerm, path) {
+      let sanitizedPath = path.replace(/[^A-Za-z_-]/g, "_")
+      graph.addQuad(formTerm, F.namedNode(IRI_rdf + "type"), F.namedNode(IRI_ui + "Form"))
+      let label = findTitle(shape);
+      if (label)
+        graph.addQuad(formTerm, F.namedNode(IRI_DcTitle), F.literal(label.object.value))
+
+      if (!("expression" in shape) || shape.expression.type !== "EachOf")
+        // The UI vocabulary accepts only lists of atoms.
+        // TODO: This rejects single TC shapes.
+        throw Error("expected .expression of type EachOf, got: " + JSON.stringify(shape))
+
+      let sp = [formTerm, F.namedNode(IRI_Ui + "parts")]
+      shape.expression.expressions.forEach((te, i) => {
+        const tePath = path + "/[" + i + "]"
+        if (te.type !== "TripleConstraint")
+          throw Error("expected " + tePath + " of type TripleConstraint, got: " + JSON.stringify(te))
+
+        // stupid list tricks
+        let partLi = F.blankNode(sanitizedPath + "_parts_" + i)
+        graph.addQuad(...sp.concat(partLi))
+        const fieldTerm = "id" in te
+              ? JSONLDtoRDFJS(te.id)
+              : F.blankNode(sanitizedPath + "_parts_" + i + "_field")
+        graph.addQuad(partLi, F.namedNode(IRI_Rdf + "first"), fieldTerm)
+        sp = [partLi, F.namedNode(IRI_Rdf + "rest")]
+
+        var needFieldType = F.namedNode(IRI_Ui + "SingleLineTextField")
+        // copy annotations
+        if ("annotations" in te)
+          te.annotations.forEach(a => {
+            if (a.predicate === REF.value)
+              return
+            if (a.predicate === IRI_RdfType)
+              needFieldType = null
+            graph.addQuad(fieldTerm, JSONLDtoRDFJS(a.predicate), JSONLDtoRDFJS(a.object))
+          })
+
+        // add property
+        graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "property"), JSONLDtoRDFJS(te.predicate))
+
+        let valueExpr = typeof te.valueExpr === "string"
+            ? derefShapeExpression(te.valueExpr)
+            : te.valueExpr
+
+        // add what we can guess from the value expression
+        if (valueExpr.type === "Shape") {
+          needFieldType = null
+          let groupId = F.blankNode(sanitizedPath + "_parts_" + i + "_group")
+          graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "part"), groupId)
+          walkShape(valueExpr, groupId, path + "/@" + localName(te.valueExpr, Meta.shexc))
+        } else if (valueExpr.type === "NodeConstraint") {
+          let nc = valueExpr
+          if ("maxLength" in nc)
+            graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "maxLength"), JSONLDtoRDFJS({value: nc.maxLength}))
+        } else {
+          throw Error("Unsupported value expression on " + tePath + ": " + JSON.stringify(valueExpr))
+        }
+
+        // if there's no type, assume ui:SingleLineTextField
+        if (needFieldType)
+          graph.addQuad(fieldTerm, F.namedNode(IRI_RdfType), needFieldType)
+
+          // 
+
+        // if value is a NodeConstraint with length values, copy to ui:
+      })
+      graph.addQuad(...sp.concat(F.namedNode(IRI_Rdf + "nil")))
+      
+    }
+
+    function JSONLDtoRDFJS (ld) {
+      if (typeof ld === "object" && "value" in ld) {
+        let dtOrLang = ld.language ||
+            ld.datatype && ld.datatype !== IRI_XsdString
+            ? null // seems to screw up N3.js
+            : F.namedNode(ld.datatype)
+        return F.literal(ld.value, dtOrLang)
+      } else if (ld.startsWith("_:")) {
+        return F.blankNode(ld.substr(2));
+      } else {
+        return F.namedNode(ld);
+      }
+    }
+/*
+    function wrap (name, before, after) {
+      const old = v[name]
+      v[name] = function () {
+        if (before) before.apply(v, arguments)
+        const ret = old.apply(v, arguments)
+        if (after) after.apply(v, ret)
+        return ret
+      }
+    }
+
+    function visitShape (shape) {
+      graph.addQuad(F.namedNode(IRI_this + "form1"), F.namedNode(IRI_rdf + "type"), F.namedNode(IRI_ui + "Form"))
+      let label = findTitle(shape);
+      if (label)
+        graph.addQuad(F.namedNode(IRI_this + "form1"), F.namedNode(IRI_DcTitle), F.literal(label.object.value))
+      
+    } */
+
+    function findShapeExpression (goal) {
+      return schema.shapes.find(se => se.id === goal)
+    }
+
+    function derefShapeExpression (shapeExpr) {
+      if (typeof shapeExpr !== "string")
+        return shapeExpr
+      const ret = findShapeExpression(shapeExpr)
+      if (!ret)
+        throw Error("unable to find shape expression \"" + shapeExpr + "\" in \n  " + schema.shapes.map(se => se.id).join("\n  "))
+      return ret
+    }
+
   }
 })()

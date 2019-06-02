@@ -7,7 +7,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <#>
 
-<#form1> {
+start=<#individualForm-byId>
+
+<#individualForm-byId> {
   $<#fullNameField> vcard:fn xsd:string MaxLength 128
         // a ui:SingleLineTextField
         // ui:label "Name"

@@ -6,7 +6,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <#>
 
-<#form1> {
+start=@<#individualForm-byId>
+
+<#individualForm-byId> {
   $<#fullNameField> vcard:fn xsd:string MaxLength 128 ;
   $<#roleField> vcard:role MaxLength 128 ? ;
   $<#fullNameFieldC> vcard:organization-name MaxLength 128 ? ;
