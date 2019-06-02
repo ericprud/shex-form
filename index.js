@@ -482,6 +482,14 @@
     return "<" + (iri.startsWith(meta.base) ? iri.substr(meta.base.length) : iri) + ">"
   }
 
+  // stupid list tricks
+  function addListEntry (sp, graph, fieldTerm, label = undefined) {
+    let partLi = F.blankNode(label)
+    graph.addQuad(...sp.concat(partLi))
+    graph.addQuad(partLi, F.namedNode(IRI_Rdf + "first"), fieldTerm)
+    return [partLi, F.namedNode(IRI_Rdf + "rest")]
+  }
+
   // Renderers
 
   // Walk ShExJ to generate a form.
@@ -899,16 +907,12 @@
         if (te.type !== "TripleConstraint")
           throw Error("expected " + tePath + " of type TripleConstraint, got: " + JSON.stringify(te))
 
-        // stupid list tricks
-        let partLi = F.blankNode(sanitizedPath + "_parts_" + i)
-        graph.addQuad(...sp.concat(partLi))
         const fieldTerm = "id" in te
               ? JSONLDtoRDFJS(te.id)
               : F.blankNode(sanitizedPath + "_parts_" + i + "_field")
-        graph.addQuad(partLi, F.namedNode(IRI_Rdf + "first"), fieldTerm)
-        sp = [partLi, F.namedNode(IRI_Rdf + "rest")]
 
-        var needFieldType = F.namedNode(IRI_Ui + "SingleLineTextField")
+        let needFieldType = F.namedNode(IRI_Ui + "SingleLineTextField") // default field type
+
         // copy annotations
         if ("annotations" in te)
           te.annotations.forEach(a => {
@@ -916,8 +920,22 @@
               return
             if (a.predicate === IRI_RdfType)
               needFieldType = null
-            graph.addQuad(fieldTerm, JSONLDtoRDFJS(a.predicate), JSONLDtoRDFJS(a.object))
+            if (a.predicate === IRI_Ui + "contents") {
+              // ui:contents get their own item in the list
+              const commentTerm = "id" in te
+                    ? JSONLDtoRDFJS(te.id + "Comment") // !! could collide, but easy to debug
+                    : F.blankNode(sanitizedPath + "_parts_" + i + "_comment")
+              graph.addQuad(commentTerm, F.namedNode(IRI_UiType), F.namedNode(IRI_Ui + "Comment"))
+              graph.addQuad(commentTerm, F.namedNode(IRI_Ui + "contents"), JSONLDtoRDFJS(a.object))
+              // add the parts list entry for comment
+              sp = addListEntry(sp, graph, commentTerm, sanitizedPath + "_parts_" + i + "_comment")
+            } else {
+              graph.addQuad(fieldTerm, JSONLDtoRDFJS(a.predicate), JSONLDtoRDFJS(a.object))
+            }
           })
+
+        // add the parts list entry for new field
+        sp = addListEntry(sp, graph, fieldTerm, sanitizedPath + "_parts_" + i)
 
         // add property
         graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "property"), JSONLDtoRDFJS(te.predicate))
@@ -934,8 +952,8 @@
           walkShape(valueExpr, groupId, path + "/@" + localName(te.valueExpr, Meta.shexc))
         } else if (valueExpr.type === "NodeConstraint") {
           let nc = valueExpr
-          if ("maxLength" in nc)
-            graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "maxLength"), JSONLDtoRDFJS({value: nc.maxLength}))
+          if ("maxlength" in nc)
+            graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "maxLength"), JSONLDtoRDFJS({value: nc.maxlength}))
         } else {
           throw Error("Unsupported value expression on " + tePath + ": " + JSON.stringify(valueExpr))
         }

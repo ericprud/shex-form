@@ -6,6 +6,9 @@ PREFIX : <http://janeirodigital.com/layout#>
 # BASE <http://a.example/schema1>
 
 <#individualForm-byRef> a :Layout ; :annotation
+  [ :ref <#individualForm-byId> ;
+    dc:title "Contact Details" ],
+
   [ :ref <#fullNameField> ;
     a ui:SingleLineTextField ;
     ui:label "Name" ;
