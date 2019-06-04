@@ -44,7 +44,7 @@ ShExToUi = function (schema, termFactory, meta) {
       // TODO: This rejects single TC shapes.
       throw Error("expected .expression of type EachOf, got: " + JSON.stringify(shape))
 
-    let sp = [formTerm, namedNode(NS_Ui + "parts")]
+    let parts = new ListObject(formTerm, namedNode(NS_Ui + "parts"), graph, termFactory)
     shape.expression.expressions.forEach((te, i) => {
       const tePath = path + "/[" + i + "]"
       if (te.type !== "TripleConstraint")
@@ -71,14 +71,14 @@ ShExToUi = function (schema, termFactory, meta) {
             graph.addQuad(commentTerm, namedNode(IRI_UiType), namedNode(NS_Ui + "Comment"))
             graph.addQuad(commentTerm, namedNode(NS_Ui + "contents"), JSONLDtoRDFJS(a.object))
             // add the parts list entry for comment
-            sp = addListEntry(sp, graph, commentTerm, sanitizedPath + "_parts_" + i + "_comment")
+            parts.add(commentTerm, sanitizedPath + "_parts_" + i + "_comment")
           } else {
             graph.addQuad(fieldTerm, JSONLDtoRDFJS(a.predicate), JSONLDtoRDFJS(a.object))
           }
         })
 
       // add the parts list entry for new field
-      sp = addListEntry(sp, graph, fieldTerm, sanitizedPath + "_parts_" + i)
+      parts.add(fieldTerm, sanitizedPath + "_parts_" + i)
 
       // add property arc
       graph.addQuad(fieldTerm, namedNode(NS_Ui + "property"), JSONLDtoRDFJS(te.predicate))
@@ -105,7 +105,7 @@ ShExToUi = function (schema, termFactory, meta) {
       if (needFieldType)
         graph.addQuad(fieldTerm, namedNode(IRI_RdfType), needFieldType)
     })
-    graph.addQuad(...sp.concat(namedNode(NS_Rdf + "nil")))
+    parts.end()
     
   }
 
@@ -161,14 +161,6 @@ ShExToUi = function (schema, termFactory, meta) {
 
   function findTitle (shexpr) {
     return (shexpr.annotations || []).find(a => a.predicate === IRI_DcTitle)
-  }
-
-  // stupid list tricks
-  function addListEntry (sp, graph, fieldTerm, label = undefined) {
-    let partLi = blankNode(label)
-    graph.addQuad(...sp.concat(partLi))
-    graph.addQuad(partLi, namedNode(NS_Rdf + "first"), fieldTerm)
-    return [partLi, namedNode(NS_Rdf + "rest")]
   }
 
 }
