@@ -4,35 +4,34 @@
  */
 
 (function () {
-  const IRI_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-  const IRI_RdfType = IRI_Rdf + "type"
+  const NS_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  const IRI_RdfType = NS_Rdf + "type"
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
   const IRI_XsdDecimal = IRI_Xsd + "decimal"
-  const IRI_Dc = "http://purl.org/dc/elements/1.1/"
-  const IRI_DcTitle = IRI_Dc + "title"
+  const NS_Dc = "http://purl.org/dc/elements/1.1/"
+  const IRI_DcTitle = NS_Dc + "title"
   const FACETS_string = ["pattern", "length", "minlength", "maxlength"]
   const FACETS_numericRange = ["minexclusive", "mininclusive", "maxexclusive", "maxinclusive"]
   const FACETS_numericLength = ["totaldigits", "fractiondigits"]
   const FACETS_supported = FACETS_string.concat(FACETS_numericRange).concat(FACETS_numericLength)
-  const IRI_Ui = "http://www.w3.org/ns/ui#"
-  const IRI_UiSize = IRI_Ui + "size"
-  const IRI_UiLabel = IRI_Ui + "label"
-  const IRI_UiContents = IRI_Ui + "contents"
+  const NS_Ui = "http://www.w3.org/ns/ui#"
+  const IRI_UiSize = NS_Ui + "size"
+  const IRI_UiLabel = NS_Ui + "label"
+  const IRI_UiContents = NS_Ui + "contents"
   const IRI_UiType = IRI_RdfType
-  const IRI_UiType_input = IRI_Ui + "SingleLineTextField"
-  const IRI_UiType_textarea = IRI_Ui + "MultiLineTextField"
-  const IRI_Layout = "http://janeirodigital.com/layout#"
-  const IRI_LayoutReadOnly = IRI_Layout + "readonly"
+  const IRI_UiType_input = NS_Ui + "SingleLineTextField"
+  const IRI_UiType_textarea = NS_Ui + "MultiLineTextField"
+  const NS_Layout = "http://janeirodigital.com/layout#"
+  const IRI_LayoutReadOnly = NS_Layout + "readonly"
   const F = N3.DataFactory
 
-  const RDF_TYPE = F.namedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-  const LAYOUT = F.namedNode("http://janeirodigital.com/layout#Layout")
-  const ANNOTATION = F.namedNode("http://janeirodigital.com/layout#annotation")
-  const PATH = F.namedNode("http://janeirodigital.com/layout#path")
-  const REF = F.namedNode("http://janeirodigital.com/layout#ref")
-  const XSD_STRING = F.namedNode("http://www.w3.org/2001/XMLSchema#string")
+  const TERM_RdfType = F.namedNode(IRI_RdfType)
+  const TERM_LayoutType = F.namedNode(NS_Layout + "Layout")
+  const TERM_LayoutAnnotation = F.namedNode(NS_Layout + "annotation")
+  const TERM_LayoutPath = F.namedNode(NS_Layout + "path")
+  const TERM_LayoutRef = F.namedNode(NS_Layout + "ref")
 
   let Meta = {
     shexc: {
@@ -260,10 +259,10 @@
     schema = JSON.parse(JSON.stringify(schema)) // modify copy, not original.
     let index = shexCore.Util.index(schema); // update index to point at copy.
     const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
-    layout.getQuads(null, RDF_TYPE, LAYOUT).forEach(quad => {
-      const annotated = layout.getQuads(quad.subject, ANNOTATION, null).map(t => {
+    layout.getQuads(null, TERM_RdfType, TERM_LayoutType).forEach(quad => {
+      const annotated = layout.getQuads(quad.subject, TERM_LayoutAnnotation, null).map(t => {
         let elt = null
-        let quads = layout.getQuads(t.object, REF, null)
+        let quads = layout.getQuads(t.object, TERM_LayoutRef, null)
         if (quads.length) {
           if (!index)
             index = shexCore.Util.index(schema);
@@ -271,11 +270,11 @@
           elt = index.shapeExprs[lookFor] || index.tripleExprs[lookFor]
           // console.log([elt, quads[0].object.value, index])
         } else {
-          const pathStr = layout.getQuads(t.object, PATH, null)[0].object.value
+          const pathStr = layout.getQuads(t.object, TERM_LayoutPath, null)[0].object.value
           elt = shexPath.search(pathStr)[0]
         }
         const newAnnots = layout.getQuads(t.object, null, null).filter(
-          t => !t.predicate.equals(PATH)
+          t => !t.predicate.equals(TERM_LayoutPath)
         ).map(t => {
           return {
             "type": "Annotation",
@@ -292,7 +291,7 @@
   function RDFJStoJSONLD (rdfjsTerm) {
     return rdfjsTerm.termType === "Literal"
       ? Object.assign({"value":rdfjsTerm.value},
-                      rdfjsTerm.datatypeString !== XSD_STRING.value
+                      rdfjsTerm.datatypeString !== IRI_XsdString
                       ? {type: rdfjsTerm.datatypeString}
                       : {})
       : rdfjsTerm.termType === "BlankNode"
@@ -414,7 +413,7 @@
   function getSchemaPromises () {
     return Promise.all([parseSchema().then(schemaParsed), parseLayout()]).then(pair => {
       $("#a-ui").attr("href", "data:text/turtle;charset=utf-8;base64,"
-                      + btoa(ShExToUi(annotateSchema(pair[0], pair[1]))))
+                      + btoa(ShExToUi(annotateSchema(pair[0], pair[1]), F, Meta.shexc)))
       return pair
     })
   }
@@ -469,10 +468,6 @@
     return (shexpr.annotations || []).find(a => a.predicate === IRI_UiLabel || a.predicate === IRI_UiContents)
   }
 
-  function findTitle (shexpr) {
-    return (shexpr.annotations || []).find(a => a.predicate === IRI_DcTitle || a.predicate === IRI_UiContents)
-  }
-
   function localName (iri, meta) {
     if (iri.startsWith("_:"))
       return iri
@@ -480,14 +475,6 @@
     if (p)
       return p + ":" + iri.substr(meta.prefixes[p].length)
     return "<" + (iri.startsWith(meta.base) ? iri.substr(meta.base.length) : iri) + ">"
-  }
-
-  // stupid list tricks
-  function addListEntry (sp, graph, fieldTerm, label = undefined) {
-    let partLi = F.blankNode(label)
-    graph.addQuad(...sp.concat(partLi))
-    graph.addQuad(partLi, F.namedNode(IRI_Rdf + "first"), fieldTerm)
-    return [partLi, F.namedNode(IRI_Rdf + "rest")]
   }
 
   // Renderers
@@ -644,8 +631,8 @@
         if (type)
           switch (type.object) {
           case (IRI_UiType_input):
-          case (IRI_Ui + "EmailField"):
-          case (IRI_Ui + "PhoneField"):
+          case (NS_Ui + "EmailField"):
+          case (NS_Ui + "PhoneField"):
             break
           case (IRI_UiType_textarea):
             valueHtml.map(h => h.attr("size", 2))
@@ -862,158 +849,5 @@
           }
         }, []))]
     }
-  }
-
-  function ShExToUi (schema) {
-    const graph = new N3.Store()
-    const IRI_ui = "http://www.w3.org/ns/ui#"
-    const IRI_dc = "http://purl.org/dc/elements/1.1/"
-    const IRI_rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-    const IRI_this = window.location + "#"
-/*    const v = shexCore.Util.Visitor()
-    wrap("visitShape", visitShape, null)
-    v.visitShapeExpr(schema.shapes[0]) */
-
-    const rootFormTerm = F.namedNode(IRI_this + "formRoot")
-
-    const start = "start" in schema
-          ? derefShapeExpression(schema.start)
-          : schema.shapes[0]
-
-    walkShape(start, rootFormTerm, localName(start.id, Meta.shexc))
-
-    const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: IRI_ui, dc: IRI_dc } })
-    writer.addQuads(graph.getQuads())
-    let ret
-    writer.end((error, result) => ret = result)
-    console.log(ret)
-    return ret
-
-    function walkShape (shape, formTerm, path) {
-      let sanitizedPath = path.replace(/[^A-Za-z_-]/g, "_")
-      graph.addQuad(formTerm, F.namedNode(IRI_rdf + "type"), F.namedNode(IRI_ui + "Form"))
-      let label = findTitle(shape);
-      if (label)
-        graph.addQuad(formTerm, F.namedNode(IRI_DcTitle), F.literal(label.object.value))
-
-      if (!("expression" in shape) || shape.expression.type !== "EachOf")
-        // The UI vocabulary accepts only lists of atoms.
-        // TODO: This rejects single TC shapes.
-        throw Error("expected .expression of type EachOf, got: " + JSON.stringify(shape))
-
-      let sp = [formTerm, F.namedNode(IRI_Ui + "parts")]
-      shape.expression.expressions.forEach((te, i) => {
-        const tePath = path + "/[" + i + "]"
-        if (te.type !== "TripleConstraint")
-          throw Error("expected " + tePath + " of type TripleConstraint, got: " + JSON.stringify(te))
-
-        const fieldTerm = "id" in te
-              ? JSONLDtoRDFJS(te.id)
-              : F.blankNode(sanitizedPath + "_parts_" + i + "_field")
-
-        let needFieldType = F.namedNode(IRI_Ui + "SingleLineTextField") // default field type
-
-        // copy annotations
-        if ("annotations" in te)
-          te.annotations.forEach(a => {
-            if (a.predicate === REF.value)
-              return
-            if (a.predicate === IRI_RdfType)
-              needFieldType = null
-            if (a.predicate === IRI_Ui + "contents") {
-              // ui:contents get their own item in the list
-              const commentTerm = "id" in te
-                    ? JSONLDtoRDFJS(te.id + "Comment") // !! could collide, but easy to debug
-                    : F.blankNode(sanitizedPath + "_parts_" + i + "_comment")
-              graph.addQuad(commentTerm, F.namedNode(IRI_UiType), F.namedNode(IRI_Ui + "Comment"))
-              graph.addQuad(commentTerm, F.namedNode(IRI_Ui + "contents"), JSONLDtoRDFJS(a.object))
-              // add the parts list entry for comment
-              sp = addListEntry(sp, graph, commentTerm, sanitizedPath + "_parts_" + i + "_comment")
-            } else {
-              graph.addQuad(fieldTerm, JSONLDtoRDFJS(a.predicate), JSONLDtoRDFJS(a.object))
-            }
-          })
-
-        // add the parts list entry for new field
-        sp = addListEntry(sp, graph, fieldTerm, sanitizedPath + "_parts_" + i)
-
-        // add property
-        graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "property"), JSONLDtoRDFJS(te.predicate))
-
-        let valueExpr = typeof te.valueExpr === "string"
-            ? derefShapeExpression(te.valueExpr)
-            : te.valueExpr
-
-        // add what we can guess from the value expression
-        if (valueExpr.type === "Shape") {
-          needFieldType = null
-          let groupId = F.blankNode(sanitizedPath + "_parts_" + i + "_group")
-          graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "part"), groupId)
-          walkShape(valueExpr, groupId, path + "/@" + localName(te.valueExpr, Meta.shexc))
-        } else if (valueExpr.type === "NodeConstraint") {
-          let nc = valueExpr
-          if ("maxlength" in nc)
-            graph.addQuad(fieldTerm, F.namedNode(IRI_Ui + "maxLength"), JSONLDtoRDFJS({value: nc.maxlength}))
-        } else {
-          throw Error("Unsupported value expression on " + tePath + ": " + JSON.stringify(valueExpr))
-        }
-
-        // if there's no type, assume ui:SingleLineTextField
-        if (needFieldType)
-          graph.addQuad(fieldTerm, F.namedNode(IRI_RdfType), needFieldType)
-
-          // 
-
-        // if value is a NodeConstraint with length values, copy to ui:
-      })
-      graph.addQuad(...sp.concat(F.namedNode(IRI_Rdf + "nil")))
-      
-    }
-
-    function JSONLDtoRDFJS (ld) {
-      if (typeof ld === "object" && "value" in ld) {
-        let dtOrLang = ld.language ||
-            ld.datatype && ld.datatype !== IRI_XsdString
-            ? null // seems to screw up N3.js
-            : F.namedNode(ld.datatype)
-        return F.literal(ld.value, dtOrLang)
-      } else if (ld.startsWith("_:")) {
-        return F.blankNode(ld.substr(2));
-      } else {
-        return F.namedNode(ld);
-      }
-    }
-/*
-    function wrap (name, before, after) {
-      const old = v[name]
-      v[name] = function () {
-        if (before) before.apply(v, arguments)
-        const ret = old.apply(v, arguments)
-        if (after) after.apply(v, ret)
-        return ret
-      }
-    }
-
-    function visitShape (shape) {
-      graph.addQuad(F.namedNode(IRI_this + "form1"), F.namedNode(IRI_rdf + "type"), F.namedNode(IRI_ui + "Form"))
-      let label = findTitle(shape);
-      if (label)
-        graph.addQuad(F.namedNode(IRI_this + "form1"), F.namedNode(IRI_DcTitle), F.literal(label.object.value))
-      
-    } */
-
-    function findShapeExpression (goal) {
-      return schema.shapes.find(se => se.id === goal)
-    }
-
-    function derefShapeExpression (shapeExpr) {
-      if (typeof shapeExpr !== "string")
-        return shapeExpr
-      const ret = findShapeExpression(shapeExpr)
-      if (!ret)
-        throw Error("unable to find shape expression \"" + shapeExpr + "\" in \n  " + schema.shapes.map(se => se.id).join("\n  "))
-      return ret
-    }
-
   }
 })()
