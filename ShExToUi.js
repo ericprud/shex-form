@@ -91,6 +91,7 @@ ShExToUi = function (schema, termFactory, meta) {
       if (valueExpr.type === "Shape") {
         needFieldType = null
         let groupId = blankNode(sanitizedPath + "_parts_" + i + "_group")
+        graph.addQuad(fieldTerm, IRI_RdfType, namedNode(NS_Ui + "Multiple"))
         graph.addQuad(fieldTerm, namedNode(NS_Ui + "part"), groupId)
         walkShape(valueExpr, groupId, path + "/@" + localName(te.valueExpr, meta))
       } else if (valueExpr.type === "NodeConstraint") {
