@@ -25,17 +25,124 @@ ShExToUi = function (schema, termFactory, meta) {
 
   walkShape(start, rootFormTerm, localName(start.id, meta))
 
+  console.log(sequesterLists(graph))
   const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc } })
   writer.addQuads(graph.getQuads())
   let ret
   writer.end((error, result) => ret = result)
-  console.log(ret)
+  // console.log(ret)
   return ret
+
+  function sequesterLists (db) {
+    const first = NS_Rdf + "first", rest = NS_Rdf + "rest", nil = NS_Rdf + "nil"
+    let usedQuads = []
+    const nonEmptyLists = new Map()
+    const tails = db.getQuads(null, rest, nil, null)
+    tails.forEach(tailQuad => {
+      let skipList = false // @#%#$ing dogmatic lack of goto in js
+      let listQuads = [tailQuad]
+      let head = null
+      let graph = tailQuad.graph
+      let members = []
+
+      let li = tailQuad.subject
+      while (li && !skipList) {
+        let ins = db.getQuads(null, null, li, null)
+        let outs = db.getQuads(li, null, null, null)
+        let f = null, r = null, parent = null, others = []
+        if (outs.reduce((skip, q) => {
+          if (skip) {
+            return true
+          }
+          if (!q.graph.equals(graph)) {
+            return fail(li, "list not confined to single graph")
+          }
+          if (head) {
+            return fail(li, "intermediate list element has non-list arcs out")
+          }
+
+          // one rdf:first
+          if (hasPredicate(q, first)) {
+            if (f) {
+              return fail(li, "multiple rdf:first arcs")
+            }
+            f = q
+            usedQuads.push(q)
+            return false
+          }
+
+          // one rdf:rest
+          if (hasPredicate(q, rest)) {
+            if (r) {
+              return fail(li, "multiple rdf:rest arcs")
+            }
+            r = q
+            usedQuads.push(q)
+            return false
+          }
+
+          // alien triple
+          if (ins.length) {
+            return fail(li, "can't be subject and object")
+          }
+          head = q // e.g. { (1 2 3) :p :o }
+          return false // all good
+        }, false)) {
+          skipList = true // we got a skip
+          break
+        }
+        // { :s :p (1 2) } arrives here with no head
+        // { (1 2) :p :o } arrives here with head set to the list.
+
+        if (ins.reduce((skip, q) => {
+            if (skip) {
+              return skip
+            }
+            if (head) {
+              return fail(li, "list item can't have coreferences")
+            }
+
+            // one rdf:rest
+            if (hasPredicate(q, rest)) {
+              if (parent) {
+                return fail(li, "multiple incoming rdf:rest arcs")
+              }
+              parent = q
+              usedQuads.push(q)
+              return false // all good
+            }
+
+            head = q // e.g. { :s :p (1 2) }
+            return false
+        }, false)) {
+          skipList = true // we got a skip
+          break
+        }
+
+        members.push(f.object)
+        li = parent ? parent.subject : null // null means we're done
+      }
+
+      if (!skipList) {
+        usedQuads = usedQuads.concat(listQuads)
+        nonEmptyLists.set(head, members.reverse())
+      }
+
+    })
+
+    return nonEmptyLists
+  }
+
+  function fail() { return true } // can use for linting later
+
+  function hasPredicate (q, p) {
+    return q.predicate.termType === "NamedNode" && q.predicate.value === p
+  }
 
   function walkShape (shape, formTerm, path) {
     let sanitizedPath = path.replace(/[^A-Za-z_-]/g, "_")
     graph.addQuad(formTerm, namedNode(NS_Rdf + "type"), namedNode(NS_Ui + "Form"))
-    let label = findTitle(shape);
+    let label = findTitle(shape)
     if (label)
       graph.addQuad(formTerm, namedNode(IRI_DcTitle), literal(label.object.value))
 
@@ -121,9 +228,9 @@ ShExToUi = function (schema, termFactory, meta) {
           : namedNode(ld.datatype)
       return literal(ld.value, dtOrLang)
     } else if (ld.startsWith("_:")) {
-      return blankNode(ld.substr(2));
+      return blankNode(ld.substr(2))
     } else {
-      return namedNode(ld);
+      return namedNode(ld)
     }
   }
 
