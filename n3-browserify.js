@@ -8542,6 +8542,8 @@ class N3Writer {
     if (outputStream && typeof outputStream.write !== 'function')
       options = outputStream, outputStream = null;
     options = options || {};
+    if ("listHeads" in options)
+      this._listHeads = options.listHeads;
 
     // If no output stream given, send the output as string through the end callback
     if (!outputStream) {
@@ -8638,8 +8640,14 @@ class N3Writer {
   // ### `_encodeIriOrBlank` represents an IRI or blank node
   _encodeIriOrBlank(entity) {
     // A blank node or list is represented as-is
-    if (entity.termType !== 'NamedNode')
+    if (entity.termType !== 'NamedNode') {
+      if ("_listHeads" in this) {
+        var members = this._listHeads.get(entity.value);
+        if (members)
+          return "(" + members.map(m => this._encodeIriOrBlank.call(this, m)).join(" ") + ")";
+      }
       return 'id' in entity ? entity.id : '_:' + entity.value;
+    }
     // Escape special characters
     var iri = entity.value;
     if (escape.test(iri))

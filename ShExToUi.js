@@ -25,23 +25,23 @@ ShExToUi = function (schema, termFactory, meta) {
 
   walkShape(start, rootFormTerm, localName(start.id, meta))
 
-  console.log(sequesterLists(graph))
-  const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc } })
+  // console.log(sequesterLists(graph))
+  const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc }, listHeads: sequesterLists(graph) })
   writer.addQuads(graph.getQuads())
   let ret
   writer.end((error, result) => ret = result)
-  // console.log(ret)
+  console.log(ret)
   return ret
 
   function sequesterLists (db) {
     const first = NS_Rdf + "first", rest = NS_Rdf + "rest", nil = NS_Rdf + "nil"
-    let usedQuads = []
     const nonEmptyLists = new Map()
     const tails = db.getQuads(null, rest, nil, null)
     tails.forEach(tailQuad => {
       let skipList = false // @#%#$ing dogmatic lack of goto in js
       let listQuads = [tailQuad]
       let head = null
+      let headPOS = null
       let graph = tailQuad.graph
       let members = []
 
@@ -67,7 +67,7 @@ ShExToUi = function (schema, termFactory, meta) {
               return fail(li, "multiple rdf:first arcs")
             }
             f = q
-            usedQuads.push(q)
+            listQuads.push(q)
             return false
           }
 
@@ -77,7 +77,7 @@ ShExToUi = function (schema, termFactory, meta) {
               return fail(li, "multiple rdf:rest arcs")
             }
             r = q
-            usedQuads.push(q)
+            listQuads.push(q)
             return false
           }
 
@@ -86,6 +86,7 @@ ShExToUi = function (schema, termFactory, meta) {
             return fail(li, "can't be subject and object")
           }
           head = q // e.g. { (1 2 3) :p :o }
+          headPOS = "subject"
           return false // all good
         }, false)) {
           skipList = true // we got a skip
@@ -108,24 +109,28 @@ ShExToUi = function (schema, termFactory, meta) {
                 return fail(li, "multiple incoming rdf:rest arcs")
               }
               parent = q
-              usedQuads.push(q)
               return false // all good
             }
 
             head = q // e.g. { :s :p (1 2) }
+            headPOS = "object"
             return false
         }, false)) {
           skipList = true // we got a skip
           break
         }
 
-        members.push(f.object)
+        members.unshift(f.object)
         li = parent ? parent.subject : null // null means we're done
       }
 
-      if (!skipList) {
-        usedQuads = usedQuads.concat(listQuads)
-        nonEmptyLists.set(head, members.reverse())
+      if (head && !skipList) {
+        db.removeQuads(listQuads)
+        // db.removeQuad(head)
+        // head[headPOS].members = members
+        // head[headPOS].id = "(" + members.map(m => turtleTerm(m, meta)).join(" ") + ")" .. nice try
+        // db.addQuad(head)
+        nonEmptyLists.set(head[headPOS].value, members)
       }
 
     })
@@ -215,6 +220,17 @@ ShExToUi = function (schema, termFactory, meta) {
     })
     parts.end()
     
+  }
+
+  function turtleTerm (rdfjs, meta) {
+    switch (rdfjs.termType) {
+    case "NamedNode":
+      return localName(rdfjs.value, meta)
+    case "BlankNode":
+      return "_:" + rdfjs.value
+    case "Literal":
+      throw Error("didn't write 'cause didn't need")
+    }
   }
 
   /** convert JSON-LD term to an RDFJS term
