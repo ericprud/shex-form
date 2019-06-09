@@ -1,0 +1,86 @@
+@prefix : <#>.
+@prefix ui: <http://www.w3.org/ns/ui#>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+
+:formRoot a ui:Form;
+    dc:title "Contact Details";
+    ui:parts (:fullNameField :roleField :fullNameFieldC :addressesComment :addresses :eMailsComment :eMails :telephonesComment :telephones :noteFieldComment :noteField).
+:fullNameField a ui:SingleLineTextField;
+    ui:label "Name";
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#fn>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:roleField a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#role>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:fullNameFieldC a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#organization-name>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:addresses a ui:Multiple;
+    dc:title "Address details";
+    ui:property <http://www.w3.org/2006/vcard/ns#hasAddress>;
+    ui:part _:__individualForm-byId__parts_3_group.
+:addressesComment a ui:Comment;
+    ui:contents "Address".
+_:__individualForm-byId__parts_3_group a ui:Form;
+    ui:parts (:id1409437207443 :id1409437292400 :id1409437421996 :id1409437467649 :id1409437569420 :id1409437646712).
+:id1409437207443 a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#street-address>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:id1409437292400 a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#locality>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:id1409437421996 a ui:SingleLineTextField;
+    ui:size "25";
+    ui:property <http://www.w3.org/2006/vcard/ns#postal-code>;
+    ui:maxLength "25"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:id1409437467649 a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#region>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:id1409437569420 a ui:SingleLineTextField;
+    ui:size "40";
+    ui:property <http://www.w3.org/2006/vcard/ns#country-name>;
+    ui:maxLength "128"^^<http://www.w3.org/2001/XMLSchema#integer>.
+:id1409437646712 a ui:SingleLineTextField;
+    ui:property <http://purl.org/dc/terms/type>;
+    ui:from <http://www.w3.org/1999/02/22-rdf-syntax-ns#Class>.
+:eMailsComment a ui:Comment;
+    ui:contents "Email".
+:eMails a ui:Multiple;
+    ui:property <http://www.w3.org/2006/vcard/ns#hasEmail>;
+    ui:part _:__individualForm-byId__parts_4_group.
+_:__individualForm-byId__parts_4_group a ui:Form;
+    ui:parts (:emailValue :emailType).
+:emailValue a ui:EmailField;
+    ui:label "email";
+    ui:size "50";
+    ui:property <http://www.w3.org/2006/vcard/ns#value>.
+:emailType a ui:SingleLineTextField;
+    ui:property <http://purl.org/dc/terms/type>;
+    ui:from <http://www.w3.org/2006/vcard/ns#Type>;
+    ui:canMintNew "0";
+    ui:category <http://www.w3.org/2006/vcard/ns#Type>.
+:telephonesComment a ui:Comment;
+    ui:contents "Phones".
+:telephones a ui:Multiple;
+    ui:property <http://www.w3.org/2006/vcard/ns#hasTelephone>;
+    ui:part _:__individualForm-byId__parts_5_group.
+_:__individualForm-byId__parts_5_group a ui:Form;
+    ui:parts (:telephoneValue :telephoneType).
+:telephoneValue a ui:PhoneField;
+    ui:size "50";
+    ui:property <http://www.w3.org/2006/vcard/ns#value>.
+:telephoneType a ui:SingleLineTextField;
+    ui:property <http://purl.org/dc/terms/type>;
+    ui:from <http://www.w3.org/2006/vcard/ns#Type>;
+    ui:canMintNew "0";
+    ui:category <http://www.w3.org/2006/vcard/ns#Type>.
+:noteField a ui:MultiLineTextField;
+    ui:property <http://www.w3.org/2006/vcard/ns#note>.
+:noteFieldComment a ui:Comment;
+    ui:contents "General Notes".
