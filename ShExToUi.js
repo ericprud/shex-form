@@ -16,7 +16,7 @@ ShExToUi = function (schema, termFactory, meta) {
   const literal = termFactory.literal
 
   const graph = new N3.Store()
-  const IRI_this = window.location + "#"
+  const IRI_this = "#" // window.location + "#"
   const rootFormTerm = namedNode(IRI_this + "formRoot")
 
   const start = "start" in schema
@@ -26,8 +26,17 @@ ShExToUi = function (schema, termFactory, meta) {
   walkShape(start, rootFormTerm, localName(start.id, meta))
 
   // console.log(sequesterLists(graph))
-  const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc }, listHeads: sequesterLists(graph) })
-  writer.addQuads(graph.getQuads())
+  const listHeads = sequesterLists(graph)
+  const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc } })
+  writer.addQuads(graph.getQuads().map(q => {
+    let members = listHeads.get(q.subject.value)
+    if (members)
+      q.subject = writer.list(members)
+    members = listHeads.get(q.object.value)
+    if (members)
+      q.object = writer.list(members)
+    return q
+  }))
   let ret
   writer.end((error, result) => ret = result)
   console.log(ret)

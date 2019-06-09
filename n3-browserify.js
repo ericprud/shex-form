@@ -5932,11 +5932,6 @@ class Term {
     this.id = id;
   }
 
-  // ### The term type of this term
-  get termType() {
-    return this.constructor.name;
-  }
-
   // ### The value of this term
   get value() {
     return this.id;
@@ -5964,12 +5959,20 @@ class Term {
 
 
 // ## NamedNode constructor
-class NamedNode extends Term {}
-NamedNode.name = 'NamedNode';
-
+class NamedNode extends Term {
+  // ### The term type of this term
+  get termType() {
+    return 'NamedNode';
+  }
+}
 
 // ## Literal constructor
 class Literal extends Term {
+  // ### The term type of this term
+  get termType() {
+    return 'Literal';
+  }
+
   // ### The text value of this literal
   get value() {
     return this.id.substring(1, this.id.lastIndexOf('"'));
@@ -6021,7 +6024,6 @@ class Literal extends Term {
     };
   }
 }
-Literal.name = 'Literal';
 
 // ## BlankNode constructor
 class BlankNode extends Term {
@@ -6029,16 +6031,25 @@ class BlankNode extends Term {
     super('_:' + name);
   }
 
+  // ### The term type of this term
+  get termType() {
+    return 'BlankNode';
+  }
+
   // ### The name of this blank node
   get value() {
     return this.id.substr(2);
   }
 }
-BlankNode.name = 'BlankNode';
 
 class Variable extends Term {
   constructor(name) {
     super('?' + name);
+  }
+
+  // ### The term type of this term
+  get termType() {
+    return 'Variable';
   }
 
   // ### The name of this variable
@@ -6046,13 +6057,17 @@ class Variable extends Term {
     return this.id.substr(1);
   }
 }
-Variable.name = 'Variable';
 
 // ## DefaultGraph constructor
 class DefaultGraph extends Term {
   constructor() {
     super('');
     return DEFAULTGRAPH || this;
+  }
+
+  // ### The term type of this term
+  get termType() {
+    return 'DefaultGraph';
   }
 
   // ### Returns whether this object represents the same term as the other
@@ -6063,7 +6078,6 @@ class DefaultGraph extends Term {
     return (this === other) || (!!other && (this.termType === other.termType));
   }
 }
-DefaultGraph.name = 'DefaultGraph';
 
 // ## DefaultGraph singleton
 DEFAULTGRAPH = new DefaultGraph();
@@ -6708,7 +6722,7 @@ module.exports = N3Lexer;
 }).call(this,require("buffer").Buffer,require("timers").setImmediate)
 },{"./IRIs":31,"buffer":3,"timers":28}],34:[function(require,module,exports){
 // **N3Parser** parses N3 documents.
-var N3Lexer = require('./N3Lexer'),
+var Lexer = require('./N3Lexer'),
     DataFactory = require('./N3DataFactory'),
     namespaces = require('./IRIs');
 
@@ -6741,7 +6755,7 @@ class N3Parser {
       this._resolveRelativeIRI = function (iri) { return ''; };
     this._blankNodePrefix = typeof options.blankNodePrefix !== 'string' ? '' :
                               options.blankNodePrefix.replace(/^(?!_:)/, '_:');
-    this._lexer = options.lexer || new N3Lexer({ lineMode: isLineMode, n3: isN3 });
+    this._lexer = options.lexer || new Lexer({ lineMode: isLineMode, n3: isN3 });
     // Disable explicit quantifiers by default
     this._explicitQuantifiers = !!options.explicitQuantifiers;
   }
@@ -7674,7 +7688,8 @@ module.exports = N3Parser;
 },{"./IRIs":31,"./N3DataFactory":32,"./N3Lexer":33}],35:[function(require,module,exports){
 // **N3Store** objects store N3 quads by graph in memory.
 
-var DataFactory = require('./N3DataFactory');
+var DataFactory = require('./N3DataFactory'),
+    Readable = require('stream').Readable;
 var toId = DataFactory.internal.toId,
     fromId = DataFactory.internal.fromId;
 
@@ -7987,6 +8002,17 @@ class N3Store {
     return stream;
   }
 
+  // ### `removeMatches` removes all matching quads from the store
+  // Setting any field to `undefined` or `null` indicates a wildcard.
+  removeMatches(subject, predicate, object, graph) {
+    return this.remove(this.match(subject, predicate, object, graph));
+  }
+
+  // ### `deleteGraph` removes all triples with the given graph from the store
+  deleteGraph(graph) {
+    return this.removeMatches(null, null, null, graph);
+  }
+
   // ### `getQuads` returns an array of quads matching a pattern.
   // Setting any field to `undefined` or `null` indicates a wildcard.
   getQuads(subject, predicate, object, graph) {
@@ -8034,6 +8060,25 @@ class N3Store {
       }
     }
     return quads;
+  }
+
+  // ### `match` returns a stream of quads matching a pattern.
+  // Setting any field to `undefined` or `null` indicates a wildcard.
+  match(subject, predicate, object, graph) {
+    var self = this;
+    var stream = new Readable({ objectMode: true });
+
+    // Initialize stream once it is being read
+    stream._read = function () {
+      stream._read = function () {};
+      var quads = self.getQuads(subject, predicate, object, graph);
+      for (var quad of quads) {
+        stream.push(quad);
+      }
+      stream.push(null);
+    };
+
+    return stream;
   }
 
   // ### `countQuads` returns the number of quads matching a pattern.
@@ -8337,6 +8382,134 @@ class N3Store {
     this._entities[this._id] = name;
     return this._factory.blankNode(name.substr(2));
   }
+
+  // ### `sequesterLists` removes all triples first/rest triples in valid rdf
+  // Collections. It returns a map from blank node identifier at the list head
+  // to an array of Collection members. For example calling with these quads:
+  //   <n1> <p1> _:b1
+  //   _:b1 rdf:first <element1> ; rdf:rest _:b2
+  //   _:b2 rdf:first "element2" ; rdf:rest rdf:nill
+  // will change the database to:
+  //   <n1> <p1> _:b1
+  // and return a map from "b1" to [<element1>, "element2"]. This can be passed
+  // to N3Writer like:
+  //   new N3Writer({ prefixes: {...}, listHeads: myStore.sequesterLists() })
+  // The fail parameter is a function to handle malformed lists. sequesterLists
+  // will non-destructively test Collections if passed a fail function like:
+  //   myStore.sequesterLists((node, msg) => {
+  //     console.log(node, message);
+  //     return false;
+  //   })
+  sequesterLists(failParam) {
+    const NsRdf = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+    const first = NsRdf + 'first', rest = NsRdf + 'rest', nil = NsRdf + 'nil';
+    const nonEmptyLists = new Map(); // has scalar keys so could be a simple Object
+    const fail = failParam || defaultListFailFunction;
+
+    // start from the tail of each list
+    const tails = this.getQuads(null, rest, nil, null);
+    tails.forEach(tailQuad => {
+      let skipList = false; // signals the current list is malformed
+      let listQuads = [tailQuad]; // which triples to remove of list is well-formed
+      let head = null; // the head of the list (_:b1 in above example)
+      let headPOS = null; // set to subject or object when head is set
+      let graph = tailQuad.graph; // make sure list is in exactly one graph
+      let members = []; // the members found as objects of rdf:first quads
+
+      let li = tailQuad.subject; // li walks from the tail to the head
+      while (li && !skipList) {
+        let ins = this.getQuads(null, null, li, null);
+        let outs = this.getQuads(li, null, null, null);
+        let f = null, r = null, parent = null;
+        if (outs.reduce((skip, q) => {
+          if (skip) {
+            return true;
+          }
+          if (!q.graph.equals(graph)) {
+            return fail(li, 'list not confined to single graph');
+          }
+          if (head) {
+            return fail(li, 'intermediate list element has non-list arcs out');
+          }
+
+          // one rdf:first
+          if (q.predicate.value === first) {
+            if (f) {
+              return fail(li, 'multiple rdf:first arcs');
+            }
+            f = q;
+            listQuads.push(q);
+            return false;
+          }
+
+          // one rdf:rest
+          if (q.predicate.value === rest) {
+            if (r) {
+              return fail(li, 'multiple rdf:rest arcs');
+            }
+            r = q;
+            listQuads.push(q);
+            return false;
+          }
+
+          // alien triple
+          if (ins.length) {
+            return fail(li, 'can\'t be subject and object');
+          }
+          head = q; // e.g. { (1 2 3) :p :o }
+          headPOS = 'subject';
+          return false; // no deformities
+        }, false)) {
+          skipList = true; // we saw a deformity
+          break;
+        }
+        // { :s :p (1 2) } arrives here with no head
+        // { (1 2) :p :o } arrives here with head set to the list.
+
+        if (ins.reduce((skip, q) => {
+          if (skip) {
+            return true;
+          }
+          if (head) {
+            return fail(li, 'list item can\'t have coreferences');
+          }
+
+          // one rdf:rest
+          if (q.predicate.value === rest) {
+            if (parent) {
+              return fail(li, 'multiple incoming rdf:rest arcs');
+            }
+            parent = q;
+            return false; // no hideous deformities
+          }
+
+          head = q; // e.g. { :s :p (1 2) }
+          headPOS = 'object';
+          return false;
+        }, false)) {
+          skipList = true; // we saw a mutant deformity
+          break;
+        }
+
+        members.unshift(f.object);
+        li = parent ? parent.subject : null; // null means we're done
+      }
+
+      if (head && !skipList) {
+        if (!failParam)
+          this.removeQuads(listQuads);
+        nonEmptyLists.set(head[headPOS].value, members);
+      }
+    });
+
+    return nonEmptyLists;
+
+    // ### `defaultListFailFunction` return true to signal an error and
+    // to abort recognition of the current list.
+    function defaultListFailFunction(listNode, failureMessage) {
+      return true;
+    }
+  }
 }
 
 // Determines whether the argument is a string
@@ -8347,7 +8520,7 @@ function isString(s) {
 // ## Exports
 module.exports = N3Store;
 
-},{"./N3DataFactory":32}],36:[function(require,module,exports){
+},{"./N3DataFactory":32,"stream":27}],36:[function(require,module,exports){
 // **N3StreamParser** parses a text stream into a quad stream.
 var Transform = require('stream').Transform,
     N3Parser = require('./N3Parser.js');
@@ -8542,8 +8715,6 @@ class N3Writer {
     if (outputStream && typeof outputStream.write !== 'function')
       options = outputStream, outputStream = null;
     options = options || {};
-    if ("listHeads" in options)
-      this._listHeads = options.listHeads;
 
     // If no output stream given, send the output as string through the end callback
     if (!outputStream) {
@@ -8640,14 +8811,8 @@ class N3Writer {
   // ### `_encodeIriOrBlank` represents an IRI or blank node
   _encodeIriOrBlank(entity) {
     // A blank node or list is represented as-is
-    if (entity.termType !== 'NamedNode') {
-      if ("_listHeads" in this) {
-        var members = this._listHeads.get(entity.value);
-        if (members)
-          return "(" + members.map(m => this._encodeIriOrBlank.call(this, m)).join(" ") + ")";
-      }
+    if (entity.termType !== 'NamedNode')
       return 'id' in entity ? entity.id : '_:' + entity.value;
-    }
     // Escape special characters
     var iri = entity.value;
     if (escape.test(iri))
