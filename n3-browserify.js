@@ -8421,74 +8421,69 @@ class N3Store {
         let ins = this.getQuads(null, null, li, null);
         let outs = this.getQuads(li, null, null, null);
         let f = null, r = null, parent = null;
-        if (outs.reduce((skip, q) => {
-          if (skip) {
-            return true;
-          }
+        var i, q;
+        for (i = 0; i < outs.length && !skipList; ++i) {
+          q = outs[i];
           if (!q.graph.equals(graph)) {
-            return fail(li, 'list not confined to single graph');
+            skipList = fail(li, 'list not confined to single graph');
           }
-          if (head) {
-            return fail(li, 'intermediate list element has non-list arcs out');
+          else if (head) {
+            skipList = fail(li, 'intermediate list element has non-list arcs out');
           }
 
           // one rdf:first
-          if (q.predicate.value === first) {
+          else if (q.predicate.value === first) {
             if (f) {
-              return fail(li, 'multiple rdf:first arcs');
+              skipList = fail(li, 'multiple rdf:first arcs');
             }
-            f = q;
-            listQuads.push(q);
-            return false;
+            else {
+              f = q;
+              listQuads.push(q);
+            }
           }
 
           // one rdf:rest
-          if (q.predicate.value === rest) {
+          else if (q.predicate.value === rest) {
             if (r) {
-              return fail(li, 'multiple rdf:rest arcs');
+              skipList = fail(li, 'multiple rdf:rest arcs');
             }
-            r = q;
-            listQuads.push(q);
-            return false;
+            else {
+              r = q;
+              listQuads.push(q);
+            }
           }
 
           // alien triple
-          if (ins.length) {
-            return fail(li, 'can\'t be subject and object');
+          else if (ins.length) {
+            skipList = fail(li, 'can\'t be subject and object');
           }
-          head = q; // e.g. { (1 2 3) :p :o }
-          headPOS = 'subject';
-          return false; // no deformities
-        }, false)) {
-          skipList = true; // we saw a deformity
-          break;
+          else {
+            head = q; // e.g. { (1 2 3) :p :o }
+            headPOS = 'subject';
+          }
         }
         // { :s :p (1 2) } arrives here with no head
         // { (1 2) :p :o } arrives here with head set to the list.
 
-        if (ins.reduce((skip, q) => {
-          if (skip) {
-            return true;
-          }
+        for (i = 0; i < ins.length && !skipList; ++i) {
+          q = ins[i];
           if (head) {
-            return fail(li, 'list item can\'t have coreferences');
+            skipList = fail(li, 'list item can\'t have coreferences');
           }
 
           // one rdf:rest
-          if (q.predicate.value === rest) {
+          else if (q.predicate.value === rest) {
             if (parent) {
-              return fail(li, 'multiple incoming rdf:rest arcs');
+              skipList = fail(li, 'multiple incoming rdf:rest arcs');
             }
-            parent = q;
-            return false; // no hideous deformities
+            else {
+              parent = q;
+            }
           }
-
-          head = q; // e.g. { :s :p (1 2) }
-          headPOS = 'object';
-          return false;
-        }, false)) {
-          skipList = true; // we saw a mutant deformity
-          break;
+          else {
+            head = q; // e.g. { :s :p (1 2) }
+            headPOS = 'object';
+          }
         }
 
         members.unshift(f.object);
@@ -8715,6 +8710,8 @@ class N3Writer {
     if (outputStream && typeof outputStream.write !== 'function')
       options = outputStream, outputStream = null;
     options = options || {};
+    if ('listHeads' in options)
+      this._listHeads = options.listHeads;
 
     // If no output stream given, send the output as string through the end callback
     if (!outputStream) {
@@ -8811,8 +8808,15 @@ class N3Writer {
   // ### `_encodeIriOrBlank` represents an IRI or blank node
   _encodeIriOrBlank(entity) {
     // A blank node or list is represented as-is
-    if (entity.termType !== 'NamedNode')
+    if (entity.termType !== 'NamedNode') {
+      if ('_listHeads' in this) {
+        // If it's a BlankNode which is the head of a list, use N3Writer.list()
+        var members = this._listHeads.get(entity.value);
+        if (members)
+          entity = this.list(members);
+      }
       return 'id' in entity ? entity.id : '_:' + entity.value;
+    }
     // Escape special characters
     var iri = entity.value;
     if (escape.test(iri))

@@ -25,133 +25,15 @@ ShExToUi = function (schema, termFactory, meta) {
 
   walkShape(start, rootFormTerm, localName(start.id, meta))
 
-  // console.log(sequesterLists(graph))
-  const listHeads = sequesterLists(graph)
-  const writer = new N3.Writer({ prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc } })
-  writer.addQuads(graph.getQuads().map(q => {
-    let members = listHeads.get(q.subject.value)
-    if (members)
-      q.subject = writer.list(members)
-    members = listHeads.get(q.object.value)
-    if (members)
-      q.object = writer.list(members)
-    return q
-  }))
+  const writer = new N3.Writer({
+    prefixes: { "": IRI_this, ui: NS_Ui, dc: NS_Dc },
+    listHeads: graph.sequesterLists()
+  })
+  writer.addQuads(graph.getQuads())
   let ret
   writer.end((error, result) => ret = result)
   console.log(ret)
   return ret
-
-  function sequesterLists (db) {
-    const first = NS_Rdf + "first", rest = NS_Rdf + "rest", nil = NS_Rdf + "nil"
-    const nonEmptyLists = new Map()
-    const tails = db.getQuads(null, rest, nil, null)
-    tails.forEach(tailQuad => {
-      let skipList = false // @#%#$ing dogmatic lack of goto in js
-      let listQuads = [tailQuad]
-      let head = null
-      let headPOS = null
-      let graph = tailQuad.graph
-      let members = []
-
-      let li = tailQuad.subject
-      while (li && !skipList) {
-        let ins = db.getQuads(null, null, li, null)
-        let outs = db.getQuads(li, null, null, null)
-        let f = null, r = null, parent = null, others = []
-        if (outs.reduce((skip, q) => {
-          if (skip) {
-            return true
-          }
-          if (!q.graph.equals(graph)) {
-            return fail(li, "list not confined to single graph")
-          }
-          if (head) {
-            return fail(li, "intermediate list element has non-list arcs out")
-          }
-
-          // one rdf:first
-          if (hasPredicate(q, first)) {
-            if (f) {
-              return fail(li, "multiple rdf:first arcs")
-            }
-            f = q
-            listQuads.push(q)
-            return false
-          }
-
-          // one rdf:rest
-          if (hasPredicate(q, rest)) {
-            if (r) {
-              return fail(li, "multiple rdf:rest arcs")
-            }
-            r = q
-            listQuads.push(q)
-            return false
-          }
-
-          // alien triple
-          if (ins.length) {
-            return fail(li, "can't be subject and object")
-          }
-          head = q // e.g. { (1 2 3) :p :o }
-          headPOS = "subject"
-          return false // all good
-        }, false)) {
-          skipList = true // we got a skip
-          break
-        }
-        // { :s :p (1 2) } arrives here with no head
-        // { (1 2) :p :o } arrives here with head set to the list.
-
-        if (ins.reduce((skip, q) => {
-            if (skip) {
-              return skip
-            }
-            if (head) {
-              return fail(li, "list item can't have coreferences")
-            }
-
-            // one rdf:rest
-            if (hasPredicate(q, rest)) {
-              if (parent) {
-                return fail(li, "multiple incoming rdf:rest arcs")
-              }
-              parent = q
-              return false // all good
-            }
-
-            head = q // e.g. { :s :p (1 2) }
-            headPOS = "object"
-            return false
-        }, false)) {
-          skipList = true // we got a skip
-          break
-        }
-
-        members.unshift(f.object)
-        li = parent ? parent.subject : null // null means we're done
-      }
-
-      if (head && !skipList) {
-        db.removeQuads(listQuads)
-        // db.removeQuad(head)
-        // head[headPOS].members = members
-        // head[headPOS].id = "(" + members.map(m => turtleTerm(m, meta)).join(" ") + ")" .. nice try
-        // db.addQuad(head)
-        nonEmptyLists.set(head[headPOS].value, members)
-      }
-
-    })
-
-    return nonEmptyLists
-  }
-
-  function fail() { return true } // can use for linting later
-
-  function hasPredicate (q, p) {
-    return q.predicate.termType === "NamedNode" && q.predicate.value === p
-  }
 
   function walkShape (shape, formTerm, path) {
     let sanitizedPath = path.replace(/[^A-Za-z_-]/g, "_")
