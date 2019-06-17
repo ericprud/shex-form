@@ -60,9 +60,9 @@
   const LayoutEditor = ace.edit("layout-editor")
   const DataEditor =   ace.edit("data-editor")
   const Editables = {
-    schema: {type: "editor", parm: "schemaURL", selector: "#schema-editor", parser: parseSchema, mode: "ace/mode/shexc"},
+    schema: {type: "editor", parm: "schemaURL", selector: "#schema-editor", parser: parseSchema, root: "shape", mode: "ace/mode/shexc"},
     layout: {type: "editor", parm: "layoutURL", selector: "#layout-editor", parser: parseLayout},
-    data  : {type: "editor", parm: "dataURL",   selector: "#data-editor"  , parser: parseData  }
+    data  : {type: "editor", parm: "dataURL",   selector: "#data-editor"  , parser: parseData  , root: "node"}
   }
   const InputLoaders = [
     {type: "select", parm: "schemaFormat", selector: "#schemaFormat" , parser: t => {
@@ -136,7 +136,7 @@
         // keep track of prefixes for painting shape menu
         Meta.shexc.prefixes = schema._prefixes || {}
         Meta.shexc.base = schema._base || location.href
-        paintShapeChoice(schema)
+        paintShapeChoice(null, schema)
 
         accept(schema)
       } catch (e) {
@@ -224,9 +224,10 @@
     Promise.all(InputLoaders.map(loader => {
       const urlOrValue = entry[loader.parm]
       if (loader.parm.endsWith("URL")) {
-        return fetch(new URL(urlOrValue, baseURL)).then(resp => resp.text()).then(text => {
+        const fromURL = new URL(urlOrValue, baseURL)
+        return fetch(fromURL).then(resp => resp.text()).then(text => {
           loader.val(text)
-          return loader.parser()
+          return loader.parser(loader.root ? new URL(entry[loader.root], fromURL).href : undefined)
         })
       } else {
         loader.val(urlOrValue)
@@ -319,8 +320,8 @@
 
   // node and shape selectors
 
-  function paintShapeChoice (schema) {
-    let selected = $("#start-shape").val()
+  function paintShapeChoice (root, schema) {
+    let selected = root || $("#start-shape").val()
     $("#start-shape").empty().append(schema.shapes.map(
       shape =>
         $("<option/>", Object.assign(
@@ -331,8 +332,8 @@
     return schema
   }
 
-  function paintNodeChoice (graph) {
-    let selected = $("#focus-node").val()
+  function paintNodeChoice (root, graph) {
+    let selected = root || $("#focus-node").val()
     let nodes = graph.getQuads().reduce(
       (nodes, q) => nodes.find(
         known => known.equals(q.subject)
@@ -362,7 +363,7 @@
 
   // parser wrappers
 
-  function parseSchema () {
+  function parseSchema (root) {
     const format = $("#schemaFormat").val()
     const nowDoing = "Parsing " + format
     return new Promise((accept, reject) => {
@@ -388,7 +389,7 @@
         // keep track of prefixes for painting shape menu
         Meta.shexc.prefixes = schema._prefixes || {}
         Meta.shexc.base = schema._base || location.href
-        paintShapeChoice(schema)
+        paintShapeChoice(root, schema)
 
         accept(schema)
       } catch (e) {
@@ -413,7 +414,7 @@
   function getSchemaPromises () {
     return Promise.all([parseSchema().then(schemaParsed), parseLayout()]).then(pair => {
       $("#a-ui").attr("href", "data:text/turtle;charset=utf-8;base64,"
-                      + btoa(ShExToUi(annotateSchema(pair[0], pair[1]), F, Meta.shexc)))
+                      /*+ btoa(ShExToUi(annotateSchema(pair[0], pair[1]), F, Meta.shexc))*/)
       return pair
     })
   }
@@ -430,9 +431,9 @@
     return parseTurtle("Layout", Meta.layout, Editables.layout)
   }
 
-  function parseData () {
+  function parseData (root) {
     return parseTurtle("Data", Meta.data, Editables.data).then(graph => {
-      paintNodeChoice(graph)
+      paintNodeChoice(root, graph)
       return graph
     })
   }

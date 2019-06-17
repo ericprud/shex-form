@@ -5,7 +5,9 @@
     "schemaURL": "profile+layout.shex",
     "schemaFormat": "ShExC",
     "layoutURL": "empty.ttl",
-    "dataURL": "profile1.ttl"
+    "dataURL": "profile1.ttl",
+    "node": "#me",
+    "shape": "#UserProfile"
   },
   {
     "title": "layout by ref (ShExC)",
@@ -69,7 +71,9 @@
     "schemaURL": "individualForm+layout.shex",
     "schemaFormat": "ShExC",
     "layoutURL": "empty.ttl",
-    "dataURL": "timbl-card.ttl#i"
+    "dataURL": "timbl-card.ttl#i",
+    "node": "https://www.w3.org/People/Berners-Lee/card#i",
+    "shape": "#individualForm-byId"
   },
   {
     "title": "individualForm (tbl) in layout",
@@ -77,6 +81,8 @@
     "schemaURL": "individualForm-labeled-TCs.shex",
     "schemaFormat": "ShExC",
     "layoutURL": "individualForm-layout-ref.ttl",
-    "dataURL": "timbl-card.ttl#i"
+    "dataURL": "timbl-card.ttl#i",
+    "node": "https://www.w3.org/People/Berners-Lee/card#i",
+    "shape": "#individualForm-byId"
   }
 ]
