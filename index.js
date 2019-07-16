@@ -74,7 +74,7 @@
 
   Object.values(Editables).forEach(edible => {
     edible.editor = ace.edit($(edible.selector).get(0))
-    edible.editor.setTheme("ace/theme/dawn")
+    edible.editor.setTheme("ace/theme/textmate")
     if (edible.mode)
       edible.editor.session.setMode(edible.mode)
     edible.val = v =>

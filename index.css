@@ -108,3 +108,9 @@ ul.manifest li button:hover {
     background-color: inherit;
 }
 
+        .ace_shapeExprLabel { background-color: #fff0c0; }
+        .ace_shapeExprRef { line-height: 1.7ex; vertical-align: top; border-bottom: .3ex solid #dfd0a0; }
+        .ace_tripleExprLabel { background-color: #f0c0ff; }
+        .ace_tripleExprRef { line-height: 1.7ex; vertical-align: top; border-bottom: .3ex solid #d0a0df; }
+        .ace_annotation { line-height: 1.7ex; vertical-align: top; border-bottom: .3ex solid #c7d7e0; }
+        .ace_escape { font-weight: bold; }
