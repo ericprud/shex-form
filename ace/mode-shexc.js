@@ -355,13 +355,21 @@ ace.define("ace/mode/shexc_highlight_rules",["require","exports","module","ace/l
     this.normalizeRules()
 
     function addComments (rules) {
+      let docTagRegex
+      try {
+        // e.g. Chrome
+        docTagRegex = new RegExp("(?<![a-zA-Z0-9_+])@[\\w\\d_]+")
+      } catch (e) {
+        // e.g. Firefox
+        docTagRegex = new RegExp("@[\\w\\d_]+")
+      }
       rules.unshift([
         {
           token : "comment.doc",
           regex : "\\/\\*(?=\\*)",
           push: [
             {
-              regex : "(?<![a-zA-Z0-9_+])@[\\w\\d_]+", // TODO: all email chars before '@'
+              regex : docTagRegex, // TODO: all email chars before '@'
               token : "comment.doc.tag",
             },
             DocCommentHighlightRules.getTagRule(),
