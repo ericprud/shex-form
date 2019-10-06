@@ -1,5 +1,7 @@
 PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
+PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
+PREFIX dc: <http://purl.org/dc/terms/>
 BASE <http://a.example/schema1>
 
 <#byRef> a :Layout ; :annotation
@@ -13,6 +15,9 @@ BASE <http://a.example/schema1>
 
   [ :ref <#vcard_street-address> ;
     ui:label "Address" ],
+  [ :ref <#vcard_street-address-type> ;
+    ui:from vc:Type ;
+    ui:property dc:type ],
   [ :ref <#vcard_street-address-street-address-1> ;
     ui:label "street" ],
   [ :ref <#vcard_street-address-country-name-1> ;

@@ -1,5 +1,7 @@
 PREFIX ui: <http://www.w3.org/ns/ui#>
 PREFIX : <http://janeirodigital.com/layout#>
+PREFIX vc: <http://www.w3.org/2006/vcard/ns#>
+PREFIX dc: <http://purl.org/dc/terms/>
 
 <#byPath> a :Layout ; :annotation
   [ :path "@<#UserProfile>" ;
@@ -12,6 +14,9 @@ PREFIX : <http://janeirodigital.com/layout#>
 
   [ :path "@<#vcard_street-address>" ;
     ui:label "Address" ],
+  [ :path "@<#vcard_street-address>/<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>" ;
+    ui:from vc:Type ;
+    ui:property dc:type ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#street-address>" ;
     ui:label "street" ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#country-name>" ;
