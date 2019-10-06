@@ -6,6 +6,8 @@
 (function () {
   const NS_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
   const IRI_RdfType = NS_Rdf + "type"
+  const NS_Rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+  const IRI_RdfsSubClassOf = NS_Rdfs + "subClassOf"
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
@@ -20,6 +22,8 @@
   const IRI_UiSize = NS_Ui + "size"
   const IRI_UiLabel = NS_Ui + "label"
   const IRI_UiContents = NS_Ui + "contents"
+  const IRI_UiFrom = NS_Ui + "from"
+  const IRI_UiProperty = NS_Ui + "property"
   const IRI_UiType = IRI_RdfType
   const IRI_UiType_input = NS_Ui + "SingleLineTextField"
   const IRI_UiType_textarea = NS_Ui + "MultiLineTextField"
@@ -615,6 +619,13 @@
       }
     }
 
+    function uuidv4 () {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
     function paintTripleConstraint (tc) {
       let label = findLabel(tc);
       let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
@@ -622,6 +633,31 @@
         ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       if (tc.valueExpr) {
         let valueHtml = paintShapeExpression(tc.valueExpr)
+        let superClass = (tc.annotations || []).find(a => a.predicate === IRI_UiFrom)
+        if (superClass) {
+          // If we have a dynamic ValueSet, pain what we have but replace it after the fetch.
+          const klass = uuidv4() // Mark everything with a unique class.
+          valueHtml.forEach(v => v.addClass(klass))
+          // Was ui:property supposed to be used somehow?
+          // let property = (tc.annotations || []).find(a => a.predicate === IRI_UiProperty)
+          // if (property) {}
+          fetch(superClass.object).then(resp => resp.text()).then(
+            rdfsText => {
+              // Parse the response.
+              let graph = new N3.Store()
+              let parser = new N3.Parser({format: "application/turtle", baseIRI: superClass.object})
+              graph.addQuads(parser.parse(rdfsText))
+              // Get all subclasses of the stated suerclass.
+              const values = graph.getQuads(null, IRI_RdfsSubClassOf, superClass.object)
+                    .map(q => q.subject.value)
+              // Re-paint the ValueSet.
+              const value2 = paintShapeExpression(Object.assign({}, tc.valueExpr, {values}))
+              // Replace old elements with newly-painted ValueSet.
+              const old = $("." + klass)
+              old.slice(1).remove()
+              old.slice(0,1).replaceWith(value2)
+            })
+        }
         let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
         if (ro)
           valueHtml.forEach(h => h.attr("readonly", "readonly"))
