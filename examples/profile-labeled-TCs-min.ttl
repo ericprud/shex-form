@@ -71,15 +71,7 @@ BASE <http://a.example/schema1>
     shex:expression [
       a shex:EachOf ;
       shex:expressions (
-        [ a shex:TripleConstraint ;
-          shex:min 0 ; shex:max 1 ;
-          shex:predicate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
-          shex:valueExpr [
-            a shex:NodeConstraint ;
-            shex:values (
-              <http://www.w3.org/2006/vcard/ns#StreetAddress>
-              <http://www.w3.org/2006/vcard/ns#MailingAddress>
-            ) ] ]
+        <#vcard_street-address-type>
         <#vcard_street-address-street-address-1>
         [ a shex:OneOf ;
           shex:expressions (
@@ -104,6 +96,17 @@ BASE <http://a.example/schema1>
             a shex:NodeConstraint ;
             shex:datatype xsd:string ] ]
       ) ] .
+
+<#vcard_street-address-type>
+          a shex:TripleConstraint ;
+          shex:min 0 ; shex:max 1 ;
+          shex:predicate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ;
+          shex:valueExpr [
+            a shex:NodeConstraint ;
+            shex:values (
+              <http://www.w3.org/2006/vcard/ns#StreetAddress>
+              <http://www.w3.org/2006/vcard/ns#MailingAddress>
+            ) ] .
 
 <#vcard_street-address-street-address-1>
           a shex:TripleConstraint ;

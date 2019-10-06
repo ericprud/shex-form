@@ -96,7 +96,7 @@
       "expression": {
         "type": "EachOf",
         "expressions": [
-          {
+          { "id": "http://a.example/schema1#vcard_street-address-type",
             "type": "TripleConstraint",
             "predicate": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
             "valueExpr": {
