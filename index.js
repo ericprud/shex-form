@@ -641,7 +641,9 @@
           // Was ui:property supposed to be used somehow?
           // let property = (tc.annotations || []).find(a => a.predicate === IRI_UiProperty)
           // if (property) {}
-          fetch(superClass.object).then(resp => resp.text()).then(
+          const url = new URL(superClass.object)
+          url.protocol = location.protocol
+          fetch(url).then(resp => resp.text()).then(
             rdfsText => {
               // Parse the response.
               let graph = new N3.Store()
