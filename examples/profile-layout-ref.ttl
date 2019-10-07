@@ -16,8 +16,7 @@ BASE <http://a.example/schema1>
   [ :ref <#vcard_street-address> ;
     ui:label "Address" ],
   [ :ref <#vcard_street-address-type> ;
-    ui:from vc:Type ;
-    ui:property dc:type ],
+    ui:from vc:Type ],
   [ :ref <#vcard_street-address-street-address-1> ;
     ui:label "street" ],
   [ :ref <#vcard_street-address-country-name-1> ;

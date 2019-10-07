@@ -23,8 +23,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 
 <#vcard_street-address> CLOSED {
   a [vc:StreetAddress vc:MailingAddress] ?
-    // ui:from vc:Type
-    // ui:property dc:type ;
+    // ui:from vc:Type ;
   vc:street-address xsd:string ? // ui:label "street" ;
   (   vc:locality xsd:string ? ;
     | vc:region xsd:string ?

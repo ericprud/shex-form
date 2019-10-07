@@ -15,8 +15,7 @@ PREFIX dc: <http://purl.org/dc/terms/>
   [ :path "@<#vcard_street-address>" ;
     ui:label "Address" ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>" ;
-    ui:from vc:Type ;
-    ui:property dc:type ],
+    ui:from vc:Type ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#street-address>" ;
     ui:label "street" ],
   [ :path "@<#vcard_street-address>/<http://www.w3.org/2006/vcard/ns#country-name>" ;

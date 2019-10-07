@@ -62,7 +62,7 @@ start=<#individualForm-byId>
         // ui:size 40 ;
 
   $<#id1409437646712> dct:type [vcard:Home vcard:Work]
-        // ui:from rdf:Class ;
+        // ui:from vcard:Type ;
 
 }
 

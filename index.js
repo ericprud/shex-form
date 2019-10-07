@@ -23,7 +23,6 @@
   const IRI_UiLabel = NS_Ui + "label"
   const IRI_UiContents = NS_Ui + "contents"
   const IRI_UiFrom = NS_Ui + "from"
-  const IRI_UiProperty = NS_Ui + "property"
   const IRI_UiType = IRI_RdfType
   const IRI_UiType_input = NS_Ui + "SingleLineTextField"
   const IRI_UiType_textarea = NS_Ui + "MultiLineTextField"
@@ -635,12 +634,9 @@
         let valueHtml = paintShapeExpression(tc.valueExpr)
         let superClass = (tc.annotations || []).find(a => a.predicate === IRI_UiFrom)
         if (superClass) {
-          // If we have a dynamic ValueSet, pain what we have but replace it after the fetch.
+          // If we have a dynamic ValueSet, paint what we have but replace it after the fetch.
           const klass = uuidv4() // Mark everything with a unique class.
           valueHtml.forEach(v => v.addClass(klass))
-          // Was ui:property supposed to be used somehow?
-          // let property = (tc.annotations || []).find(a => a.predicate === IRI_UiProperty)
-          // if (property) {}
           const url = new URL(superClass.object)
           url.protocol = location.protocol
           fetch(url).then(resp => resp.text()).then(

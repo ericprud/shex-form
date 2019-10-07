@@ -59,7 +59,7 @@ PREFIX : <http://janeirodigital.com/layout#>
     ui:size 40 ],
 
   [ :ref <#id1409437646712> ;
-    ui:from rdf:Class ],
+    ui:from vcard:Type ],
 
 
 
