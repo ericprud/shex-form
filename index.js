@@ -649,7 +649,7 @@
               const values = graph.getQuads(null, IRI_RdfsSubClassOf, superClass.object)
                     .map(q => q.subject.value)
               // Re-paint the ValueSet.
-              const fetchedRendering = paintShapeExpression(Object.assign({}, tc.valueExpr, {values}))
+              let fetchedRendering = paintShapeExpression(Object.assign({}, tc.valueExpr, {values}))
               fetchedRendering = annotationTweaks(fetchedRendering, tc.annotations)
               // Replace old elements with newly-painted ValueSet.
               const old = $("." + klass)
