@@ -35,7 +35,7 @@ BASE <http://a.example/schema1>
 
 <#vcard_street-address> CLOSED {
   $<#vcard_street-address-type>
-      a [vc:StreetAddress vc:MailingAddress] ? ;
+      a [vc:Home vc:Postal] ? ;
 
   $<#vcard_street-address-street-address-1>
       vc:street-address xsd:string ? ;

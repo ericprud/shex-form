@@ -102,8 +102,8 @@
             "valueExpr": {
               "type": "NodeConstraint",
               "values": [
-                "http://www.w3.org/2006/vcard/ns#StreetAddress",
-                "http://www.w3.org/2006/vcard/ns#MailingAddress"
+                "http://www.w3.org/2006/vcard/ns#Home",
+                "http://www.w3.org/2006/vcard/ns#Postal"
               ]
             },
             "min": 0,

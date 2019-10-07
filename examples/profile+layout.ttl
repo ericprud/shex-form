@@ -94,8 +94,8 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
           shex:valueExpr [
             a shex:NodeConstraint ;
             shex:values (
-              <http://www.w3.org/2006/vcard/ns#StreetAddress>
-              <http://www.w3.org/2006/vcard/ns#MailingAddress>
+              <http://www.w3.org/2006/vcard/ns#Home>
+              <http://www.w3.org/2006/vcard/ns#Postal>
             ) ] ]
         [ a shex:TripleConstraint ;
           shex:predicate <http://www.w3.org/2006/vcard/ns#street-address> ;

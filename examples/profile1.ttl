@@ -7,12 +7,12 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
   foaf:name "Robert Smith" ;
   vc:telephone <tel:+33.6.80.80.00.00> ;
   vc:hasAddress [
-    a vc:StreetAddress ;
+    a vc:Home ;
     vc:locality "神奈川件" ;
     vc:country-name "日本" ;
     vc:postal-code "63000-8"
   ], [
-    a vc:MailingAddress ;
+    a vc:Postal ;
     vc:region "CF" ;
     vc:country-name "France" ;
     vc:postal-code "63000"

@@ -631,12 +631,12 @@
       if (typeof tc.max !== "undefined" && tc.max !== 1)
         ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       if (tc.valueExpr) {
-        let valueHtml = paintShapeExpression(tc.valueExpr)
+        let rendered = paintShapeExpression(tc.valueExpr)
         let superClass = (tc.annotations || []).find(a => a.predicate === IRI_UiFrom)
         if (superClass) {
           // If we have a dynamic ValueSet, paint what we have but replace it after the fetch.
           const klass = uuidv4() // Mark everything with a unique class.
-          valueHtml.forEach(v => v.addClass(klass))
+          rendered.forEach(v => v.addClass(klass))
           const url = new URL(superClass.object)
           url.protocol = location.protocol
           fetch(url).then(resp => resp.text()).then(
@@ -649,35 +649,41 @@
               const values = graph.getQuads(null, IRI_RdfsSubClassOf, superClass.object)
                     .map(q => q.subject.value)
               // Re-paint the ValueSet.
-              const value2 = paintShapeExpression(Object.assign({}, tc.valueExpr, {values}))
+              const fetchedRendering = paintShapeExpression(Object.assign({}, tc.valueExpr, {values}))
+              fetchedRendering = annotationTweaks(fetchedRendering, tc.annotations)
               // Replace old elements with newly-painted ValueSet.
               const old = $("." + klass)
               old.slice(1).remove()
-              old.slice(0,1).replaceWith(value2)
+              old.slice(0,1).replaceWith(fetchedRendering)
             })
         }
-        let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
-        if (ro)
-          valueHtml.forEach(h => h.attr("readonly", "readonly"))
-        let size = (tc.annotations || []).find(a => a.predicate === IRI_UiSize)
-        if (size)
-          valueHtml.forEach(h => h.attr("size", size.object.value))
-        let type = (tc.annotations || []).find(a => a.predicate === IRI_UiType)
-        if (type)
-          switch (type.object) {
-          case (IRI_UiType_input):
-          case (NS_Ui + "EmailField"):
-          case (NS_Ui + "PhoneField"):
-            break
-          case (IRI_UiType_textarea):
-            valueHtml.map(h => h.attr("size", 2))
-            break
-          default:
-            throw Error("Unrecognized UI type: " + type.object)
-          }
-        ret.append(valueHtml)
+        rendered = annotationTweaks(rendered, tc.annotations)
+        ret.append(rendered)
       }
       return [ret]
+    }
+
+    function annotationTweaks (rendered, annotations) {
+      let ro = (annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
+      if (ro)
+        rendered.forEach(h => h.attr("readonly", "readonly"))
+      let size = (annotations || []).find(a => a.predicate === IRI_UiSize)
+      if (size)
+        rendered.forEach(h => h.attr("size", size.object.value))
+      let type = (annotations || []).find(a => a.predicate === IRI_UiType)
+      if (type)
+        switch (type.object) {
+        case (IRI_UiType_input):
+        case (NS_Ui + "EmailField"):
+        case (NS_Ui + "PhoneField"):
+          break
+        case (IRI_UiType_textarea):
+          rendered.map(h => h.attr("size", 2))
+          break
+        default:
+          throw Error("Unrecognized UI type: " + type.object)
+        }
+      return rendered
     }
   }
 

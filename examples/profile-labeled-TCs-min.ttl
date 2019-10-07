@@ -104,8 +104,8 @@ BASE <http://a.example/schema1>
           shex:valueExpr [
             a shex:NodeConstraint ;
             shex:values (
-              <http://www.w3.org/2006/vcard/ns#StreetAddress>
-              <http://www.w3.org/2006/vcard/ns#MailingAddress>
+              <http://www.w3.org/2006/vcard/ns#Home>
+              <http://www.w3.org/2006/vcard/ns#Postal>
             ) ] .
 
 <#vcard_street-address-street-address-1>

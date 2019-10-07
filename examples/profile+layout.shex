@@ -22,7 +22,7 @@ PREFIX solid: <http://www.w3.org/ns/solid/terms#>
 } // ui:label "User Profile"
 
 <#vcard_street-address> CLOSED {
-  a [vc:StreetAddress vc:MailingAddress] ?
+  a [vc:Home vc:Postal] ?
     // ui:from vc:Type ;
   vc:street-address xsd:string ? // ui:label "street" ;
   (   vc:locality xsd:string ? ;
