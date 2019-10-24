@@ -262,7 +262,7 @@
   function annotateSchema (schema, layout) {
     schema = JSON.parse(JSON.stringify(schema)) // modify copy, not original.
     let index = shexCore.Util.index(schema); // update index to point at copy.
-    const shexPath = shexCore.Util.shexPath(schema, Meta.shexc)
+    const pathResolver = shexPath(schema, Meta.shexc)
     layout.getQuads(null, TERM_RdfType, TERM_LayoutType).forEach(quad => {
       const annotated = layout.getQuads(quad.subject, TERM_LayoutAnnotation, null).map(t => {
         let elt = null
@@ -275,7 +275,7 @@
           // console.log([elt, quads[0].object.value, index])
         } else {
           const pathStr = layout.getQuads(t.object, TERM_LayoutPath, null)[0].object.value
-          elt = shexPath.search(pathStr)[0]
+          elt = pathResolver.search(pathStr)[0]
         }
         const newAnnots = layout.getQuads(t.object, null, null).filter(
           t => !t.predicate.equals(TERM_LayoutPath)
