@@ -1,104 +1,4 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.shexPath = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var HierarchyClosure = (function () {
-  /** create a hierarchy object
-   * This object keeps track of direct children and parents as well as transitive children and parents.
-   */
-  function makeHierarchy () {
-    let roots = {}
-    let parents = {}
-    let children = {}
-    let holders = {}
-    return {
-      add: function (parent, child) {
-        if (// test if this is a novel entry.
-          (parent in children && children[parent].indexOf(child) !== -1)) {
-          return
-        }
-        let target = parent in holders
-          ? getNode(parent)
-          : (roots[parent] = getNode(parent)) // add new parents to roots.
-        let value = getNode(child)
-
-        target[child] = value
-        delete roots[child]
-
-        // // maintain hierarchy (direct and confusing)
-        // children[parent] = children[parent].concat(child, children[child])
-        // children[child].forEach(c => parents[c] = parents[c].concat(parent, parents[parent]))
-        // parents[child] = parents[child].concat(parent, parents[parent])
-        // parents[parent].forEach(p => children[p] = children[p].concat(child, children[child]))
-
-        // maintain hierarchy (generic and confusing)
-        updateClosure(children, parents, child, parent)
-        updateClosure(parents, children, parent, child)
-        function updateClosure (container, members, near, far) {
-          container[far] = container[far].filter(
-            e => /* e !== near && */ container[near].indexOf(e) === -1
-          ).concat(container[near].indexOf(near) === -1 ? [near] : [], container[near])
-          container[near].forEach(
-            n => (members[n] = members[n].filter(
-              e => e !== far && members[far].indexOf(e) === -1
-            ).concat(members[far].indexOf(far) === -1 ? [far] : [], members[far]))
-          )
-        }
-
-        function getNode (node) {
-          if (!(node in holders)) {
-            parents[node] = []
-            children[node] = []
-            holders[node] = {}
-          }
-          return holders[node]
-        }
-      },
-      roots: roots,
-      parents: parents,
-      children: children
-    }
-  }
-
-  function depthFirst (n, f, p) {
-    return Object.keys(n).reduce((ret, k) => {
-      return ret.concat(
-        depthFirst(n[k], f, k),
-        p ? f(k, p) : []) // outer invocation can have null parent
-    }, [])
-  }
-
-  return { create: makeHierarchy, depthFirst }
-})()
-
-/* istanbul ignore next */
-if (typeof require !== 'undefined' && typeof exports !== 'undefined') {
-  module.exports = HierarchyClosure
-}
-
-},{}],2:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],3:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -284,14 +184,39 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],4:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],3:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -881,7 +806,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":4,"_process":3,"inherits":2}],6:[function(require,module,exports){
+},{"./support/isBuffer":3,"_process":1,"inherits":2}],5:[function(require,module,exports){
 /**
  *
  * isIRI, isBlank, getLiteralType, getLiteralValue
@@ -1189,7 +1114,7 @@ var escape    = /["\\\t\n\r\b\f\u0000-\u0019\ud800-\udbff]/,
 if (typeof require !== 'undefined' && typeof exports !== 'undefined')
   module.exports = RdfTerm; // node environment
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // **ShExUtil** provides ShEx utility functions
 
 var ShExUtil = (function () {
@@ -3385,140 +3310,6 @@ var ShExUtil = {
     catch (error) { console.warn(error); return ''; }
   },
 
-  shexPath: function (schema, const_iriResolver) {
-    var _ShExUtil = this;
-    const navigation = new Map()
-    navigation.set(schema, []) // schema has no parents
-
-    const parents = [schema]
-    const visitor = _ShExUtil.Visitor()
-
-    const oldVisitExpression = visitor.visitExpression
-    visitor.visitExpression = function (expr) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitExpression.call(visitor, expr)
-      parents.pop()
-      return ret
-    }
-
-    const oldVisitShapeExpr = visitor.visitShapeExpr
-    visitor.visitShapeExpr = function (expr, label) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitShapeExpr.call(visitor, expr, label)
-      parents.pop()
-      return ret
-    }
-
-    visitor.visitSchema(schema)
-
-    return {
-      search: search
-    }
-
-    /**
-     * invocation:
-     *   .search("/my:path")
-     *   .search("/my:path", schema.shapes[1])
-     *   .search("/my:path", [schema.shapes[1]])
-     */
-    function search (path, context = [schema], iriResolver = const_iriResolver) {
-      if (context.constructor !== Array) {
-        context = [context]
-      }
-      if (path[0] === '/') {
-        context = [schema]
-        path = path.substr(1)
-      }
-      let m;
-      let consumed = 0;
-      const TESTS = "("
-            + [ "ShapeOr", "ShapeAnd", "ShapeNot",
-                "NodeConstraint", "Shape",
-                "EachOf", "OneOf", "TripleConstraint" ].join("|")
-            + ")";
-      const INT = "([1-9][0-9]*)"
-      const IRI = "<([^>]+)>"
-      const ATTRS = "((?:\\.[a-zA-Z_][a-zA-Z_0-9]*)*)"
-      const R = new RegExp(`^\\s*(@?)\\s*${TESTS}?\\s*(?:${INT}|${IRI}\\s*${INT}?)?\\s*${ATTRS}\\s*\\/?`)
-      while(path && (m = path.match(R)) && m[0].length) {
-        const len = m[0].length;
-        path = path.substr(len);
-        consumed += len;
-        context = context.reduce(
-          (newValue, I) => newValue.concat(attr(m[1], m[6].split(/\./).splice(1), evaluateIndex(I, m[2], m[3] ? parseInt(m[3]) : null, m[4], m[5]))), []
-        )
-      }
-      if (path.length)
-        throw Error("unable to parse at offset " + consumed + ": " + path)
-      return context
-
-      function evaluateIndex (I, axis, i, N, Ni) {
-        // if (i || N /*|| axis*/) {
-        if (i || N || axis) {
-          if (I.type === "Shape" && axis !== "Shape" && "expression" in I)
-            I = I.expression;
-          else if (I.type === "TripleConstraint" && axis !== "TripleConstraint" && "valueExpr" in I)
-            I = I.valueExpr;
-        }
-        if (axis && I.type !== axis)
-          return []
-        if (!i && !N)
-          return [I]
-        if (I.type === "Schema") {
-          if (i) return [I.shapes[i-1]]
-          else if ("shapes" in I && (!Ni || Ni === 1)) return [N]
-        } else if (I.type === "ShapeOr" || I.type === "ShapeAnd") {
-          if (i && i - 1 >= 0 && i - 1 < I.shapeExprs.length) return [I.shapeExprs[i - 1]]
-        } else if (I.type === "ShapeNot") {
-          if (i && i === 1) return [I.shapeExpr]
-        } else if (I.type === "NodeConstraint") {
-        } else if (I.type === "Shape") {
-          // if ("expression" in I) return evaluateIndex(I.expression, axis, i, N, Ni)
-          if (i && i === 1) return [I]
-        } else if (I.type === "EachOf" || I.type === "OneOf") {
-          if (i) return [I.expressions[i-1]]
-          else {
-            let TCs = findByPredicate(N, I)
-            if (Ni) return [TCs[Ni-1]]
-            else return TCs
-          }
-        } if (I.type === "TripleConstraint") {
-          if (i && i === 1) return [I]
-          else if (N === I.predicate && (!Ni || Ni === 1)) return [I]
-        }
-        return []
-      }
-
-      function attr (follow, As, elts) {
-        const withAttrs = elts.map(
-          elt => As.reduce(
-            (acc, A) => typeof elt === "object" ? acc[A] : undefined, elt
-          )
-        ).filter(elt => elt)
-        return follow ? withAttrs.map(
-          elt => schema.shapes.find(se => se.id === RdfTerm.resolveRelativeIRI(iriResolver.base, elt)), []
-        ).filter(elt => elt) : withAttrs
-      }
-    }
-
-    // return set of triple constraints the shape expression I.expressions with a predicate of N.
-    function findByPredicate (N, expression) {
-      const visitor = _ShExUtil.Visitor()
-      let ret = []
-
-      const oldVisitTripleConstraint = visitor.visitTripleConstraint
-      visitor.visitTripleConstraint = function (expr) {
-        if (expr.predicate === N)
-          ret.push(expr)
-        return oldVisitTripleConstraint.call(visitor, expr)
-      }
-      visitor.visitExpression(expression)
-      return ret
-    }
-  },
-
 };
 
 
@@ -3555,7 +3346,7 @@ return AddShExUtil(AddShExUtil);
 if (typeof require !== 'undefined' && typeof exports !== 'undefined')
   module.exports = ShExUtil; // node environment
 
-},{"../lib/ShExWriter":9,"./RdfTerm":6,"hierarchy-closure":1}],8:[function(require,module,exports){
+},{"../lib/ShExWriter":8,"./RdfTerm":5,"hierarchy-closure":11}],7:[function(require,module,exports){
 (function (process){
 /* ShExValidator - javascript module to validate a graph with respect to Shape Expressions
  *
@@ -4793,7 +4584,7 @@ if (typeof require !== "undefined" && typeof exports !== "undefined")
   module.exports = ShExValidator;
 
 }).call(this,require('_process'))
-},{"../lib/regex/nfax-val-1err":10,"../lib/regex/threaded-val-nerr":11,"./RdfTerm":6,"./ShExUtil":7,"_process":3}],9:[function(require,module,exports){
+},{"../lib/regex/nfax-val-1err":9,"../lib/regex/threaded-val-nerr":10,"./RdfTerm":5,"./ShExUtil":6,"_process":1}],8:[function(require,module,exports){
 // **ShExWriter** writes ShEx documents.
 
 var ShExWriter = (function () {
@@ -5422,7 +5213,7 @@ return ShExWriter;
 if (typeof require !== 'undefined' && typeof exports !== 'undefined')
   module.exports = ShExWriter; // node environment
 
-},{"util":5}],10:[function(require,module,exports){
+},{"util":4}],9:[function(require,module,exports){
 var NFAXVal1Err = (function () {
   var RdfTerm = require("../RdfTerm");
 
@@ -5963,7 +5754,7 @@ return exports = {
 if (typeof require !== "undefined" && typeof exports !== "undefined")
   module.exports = NFAXVal1Err;
 
-},{"../RdfTerm":6}],11:[function(require,module,exports){
+},{"../RdfTerm":5}],10:[function(require,module,exports){
 var ThreadedValNErr = (function () {
 var RdfTerm = require("../RdfTerm");
 var UNBOUNDED = -1;
@@ -6335,7 +6126,82 @@ return {
 if (typeof require !== "undefined" && typeof exports !== "undefined")
   module.exports = ThreadedValNErr;
 
-},{"../RdfTerm":6}],12:[function(require,module,exports){
+},{"../RdfTerm":5}],11:[function(require,module,exports){
+var HierarchyClosure = (function () {
+  /** create a hierarchy object
+   * This object keeps track of direct children and parents as well as transitive children and parents.
+   */
+  function makeHierarchy () {
+    let roots = {}
+    let parents = {}
+    let children = {}
+    let holders = {}
+    return {
+      add: function (parent, child) {
+        if (// test if this is a novel entry.
+          (parent in children && children[parent].indexOf(child) !== -1)) {
+          return
+        }
+        let target = parent in holders
+          ? getNode(parent)
+          : (roots[parent] = getNode(parent)) // add new parents to roots.
+        let value = getNode(child)
+
+        target[child] = value
+        delete roots[child]
+
+        // // maintain hierarchy (direct and confusing)
+        // children[parent] = children[parent].concat(child, children[child])
+        // children[child].forEach(c => parents[c] = parents[c].concat(parent, parents[parent]))
+        // parents[child] = parents[child].concat(parent, parents[parent])
+        // parents[parent].forEach(p => children[p] = children[p].concat(child, children[child]))
+
+        // maintain hierarchy (generic and confusing)
+        updateClosure(children, parents, child, parent)
+        updateClosure(parents, children, parent, child)
+        function updateClosure (container, members, near, far) {
+          container[far] = container[far].filter(
+            e => /* e !== near && */ container[near].indexOf(e) === -1
+          ).concat(container[near].indexOf(near) === -1 ? [near] : [], container[near])
+          container[near].forEach(
+            n => (members[n] = members[n].filter(
+              e => e !== far && members[far].indexOf(e) === -1
+            ).concat(members[far].indexOf(far) === -1 ? [far] : [], members[far]))
+          )
+        }
+
+        function getNode (node) {
+          if (!(node in holders)) {
+            parents[node] = []
+            children[node] = []
+            holders[node] = {}
+          }
+          return holders[node]
+        }
+      },
+      roots: roots,
+      parents: parents,
+      children: children
+    }
+  }
+
+  function depthFirst (n, f, p) {
+    return Object.keys(n).reduce((ret, k) => {
+      return ret.concat(
+        depthFirst(n[k], f, k),
+        p ? f(k, p) : []) // outer invocation can have null parent
+    }, [])
+  }
+
+  return { create: makeHierarchy, depthFirst }
+})()
+
+/* istanbul ignore next */
+if (typeof require !== 'undefined' && typeof exports !== 'undefined') {
+  module.exports = HierarchyClosure
+}
+
+},{}],12:[function(require,module,exports){
 var ShExCore = {
   RdfTerm:    require('./lib/RdfTerm'),
   Util:         require('./lib/ShExUtil'),
@@ -6349,8 +6215,10 @@ if (typeof require !== 'undefined' && typeof exports !== 'undefined')
   module.exports = ShExCore;
 
 
-},{"./lib/RdfTerm":6,"./lib/ShExUtil":7,"./lib/ShExValidator":8,"./lib/ShExWriter":9,"./lib/regex/nfax-val-1err":10,"./lib/regex/threaded-val-nerr":11}],13:[function(require,module,exports){
-var ShExUtil = require("@shexjs/core").Util;
+},{"./lib/RdfTerm":5,"./lib/ShExUtil":6,"./lib/ShExValidator":7,"./lib/ShExWriter":8,"./lib/regex/nfax-val-1err":9,"./lib/regex/threaded-val-nerr":10}],13:[function(require,module,exports){
+const ShExCore = require("@shexjs/core");
+const RdfTerm = ShExCore.RdfTerm;
+const ShExUtil = ShExCore.Util;
 
 const ShExPath = function (schema, const_iriResolver) {
     const navigation = new Map()

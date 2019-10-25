@@ -1,31 +1,6 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.shexParser = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 
 },{}],2:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],3:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -331,7 +306,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":4}],4:[function(require,module,exports){
+},{"_process":3}],3:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -516,6 +491,31 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 process.umask = function() { return 0; };
+
+},{}],4:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
 
 },{}],5:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
@@ -1114,7 +1114,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":5,"_process":4,"inherits":2}],7:[function(require,module,exports){
+},{"./support/isBuffer":5,"_process":3,"inherits":4}],7:[function(require,module,exports){
 /**
  *
  * isIRI, isBlank, getLiteralType, getLiteralValue
@@ -1280,7 +1280,9 @@ var RdfTerm = (function () {
         node = node.replace(escapeAll, characterReplacer);
       var pref = Object.keys(prefixes).find(pref => node.startsWith(prefixes[pref]));
       if (pref) {
-        return pref + node.substr(prefixes[pref].length);
+        var rest = node.substr(prefixes[pref].length);
+        if (rest.indexOf("\\") === -1) // could also say no more than n of these: [...]
+          return pref + ":" + rest.replace(/([~!$&'()*+,;=/?#@%])/g, '\\' + "$1");
       }
       if (node.startsWith(base)) {
         return "<" + node.substr(base.length) + ">";
@@ -1511,7 +1513,7 @@ var ShExUtil = {
         _ShExUtil._expect(schema, "type", "Schema");
         this._maybeSet(schema, ret, "Schema",
                        ["@context", "prefixes", "base", "imports", "startActs", "start", "shapes"],
-                       ["_base", "_prefixes", "_index"]
+                       ["_base", "_prefixes", "_index", "_sourceMap"]
                       );
         return ret;
       },
@@ -1988,8 +1990,8 @@ var ShExUtil = {
    */
   index: function (schema) {
     let index = {
-      shapeExprs: [],
-      tripleExprs: []
+      shapeExprs: new Map(),
+      tripleExprs: new Map()
     };
     let v = ShExUtil.Visitor();
 
@@ -2021,6 +2023,8 @@ var ShExUtil = {
     delete ret._base;
     let index = ret._index || this.index(schema);
     delete ret._index;
+    let sourceMap = ret._sourceMap;
+    delete ret._sourceMap;
     // Don't delete ret.productions as it's part of the AS.
     var v = ShExUtil.Visitor();
     var knownExpressions = [];
@@ -2514,7 +2518,7 @@ var ShExUtil = {
   merge: function (left, right, overwrite, inPlace) {
     var ret = inPlace ? left : this.emptySchema();
 
-    function copy (attr) {
+    function mergeArray (attr) {
       Object.keys(left[attr] || {}).forEach(function (key) {
         if (!(attr in ret))
           ret[attr] = {};
@@ -2529,6 +2533,21 @@ var ShExUtil = {
       });
     }
 
+    function mergeMap (attr) {
+      (left[attr] || new Map()).forEach(function (value, key, map) {
+        if (!(attr in ret))
+          ret[attr] = new Map();
+        ret[attr].set(key, left[attr].get(key));
+      });
+      (right[attr] || new Map()).forEach(function (value, key, map) {
+        if (!(attr  in left) || !(left[attr].has(key)) || overwrite) {
+          if (!(attr in ret))
+            ret[attr] = new Map();
+          ret[attr].set(key, right[attr].get(key));
+        }
+      });
+    }
+
     // base
     if ("_base" in left)
       ret._base = left._base;
@@ -2536,7 +2555,9 @@ var ShExUtil = {
       if (!("_base" in left) || overwrite)
         ret._base = right._base;
 
-    copy("_prefixes");
+    mergeArray("_prefixes");
+
+    mergeMap("_sourceMap");
 
     if ("imports" in right)
       if (!("imports" in left) || overwrite)
@@ -2646,9 +2667,9 @@ var ShExUtil = {
     var oldVisitShapeRef = visitor.visitShapeRef;
     visitor.visitShapeRef = function (shapeRef) {
       if (!(shapeRef in index.shapeExprs))
-        throw Error("Structural error: reference to " + JSON.stringify(shapeRef) + " not found in schema shape expressions:\n" + dumpKeys(index.shapeExprs) + ".");
+        throw firstError(Error("Structural error: reference to " + JSON.stringify(shapeRef) + " not found in schema shape expressions:\n" + dumpKeys(index.shapeExprs) + "."), shapeRef);
       if (!inTE && shapeRef === currentLabel)
-        throw Error("Structural error: circular reference to " + currentLabel + ".");
+        throw firstError(Error("Structural error: circular reference to " + currentLabel + "."), shapeRef);
       (currentNegated ? negativeDeps : positiveDeps).add(currentLabel, shapeRef)
       return oldVisitShapeRef.call(visitor, shapeRef);
     }
@@ -2657,7 +2678,7 @@ var ShExUtil = {
     visitor.visitInclusion = function (inclusion) {
       var refd;
       if (!(refd = index.tripleExprs[inclusion]))
-        throw Error("Structural error: included shape " + inclusion + " not found in schema triple expressions:\n" + dumpKeys(index.tripleExprs) + ".");
+        throw firstError(Error("Structural error: included shape " + inclusion + " not found in schema triple expressions:\n" + dumpKeys(index.tripleExprs) + "."), inclusion);
       // if (refd.type !== "Shape")
       //   throw Error("Structural error: " + inclusion + " is not a simple shape.");
       return oldVisitInclusion.call(visitor, inclusion);
@@ -2674,12 +2695,18 @@ var ShExUtil = {
       ).length > 0
     );
     if (circs.length)
-      throw Error("Structural error: circular negative dependencies on " + circs.join(',') + ".");
+      throw firstError(Error("Structural error: circular negative dependencies on " + circs.join(',') + "."), circs[0]);
 
     function dumpKeys (obj) {
       return obj ? Object.keys(obj).map(
         u => u.substr(0, 2) === '_:' ? u : '<' + u + '>'
       ).join("\n        ") : '- none defined -'
+    }
+
+    function firstError (e, obj) {
+      if ("_sourceMap" in schema)
+        e.location = (schema._sourceMap.get(obj) || [undefined])[0];
+      return e;
     }
   },
 
@@ -3589,140 +3616,6 @@ var ShExUtil = {
       return string;
     }
     catch (error) { console.warn(error); return ''; }
-  },
-
-  shexPath: function (schema, const_iriResolver) {
-    var _ShExUtil = this;
-    const navigation = new Map()
-    navigation.set(schema, []) // schema has no parents
-
-    const parents = [schema]
-    const visitor = _ShExUtil.Visitor()
-
-    const oldVisitExpression = visitor.visitExpression
-    visitor.visitExpression = function (expr) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitExpression.call(visitor, expr)
-      parents.pop()
-      return ret
-    }
-
-    const oldVisitShapeExpr = visitor.visitShapeExpr
-    visitor.visitShapeExpr = function (expr, label) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitShapeExpr.call(visitor, expr, label)
-      parents.pop()
-      return ret
-    }
-
-    visitor.visitSchema(schema)
-
-    return {
-      search: search
-    }
-
-    /**
-     * invocation:
-     *   .search("/my:path")
-     *   .search("/my:path", schema.shapes[1])
-     *   .search("/my:path", [schema.shapes[1]])
-     */
-    function search (path, context = [schema], iriResolver = const_iriResolver) {
-      if (context.constructor !== Array) {
-        context = [context]
-      }
-      if (path[0] === '/') {
-        context = [schema]
-        path = path.substr(1)
-      }
-      let m;
-      let consumed = 0;
-      const TESTS = "("
-            + [ "ShapeOr", "ShapeAnd", "ShapeNot",
-                "NodeConstraint", "Shape",
-                "EachOf", "OneOf", "TripleConstraint" ].join("|")
-            + ")";
-      const INT = "([1-9][0-9]*)"
-      const IRI = "<([^>]+)>"
-      const ATTRS = "((?:\\.[a-zA-Z_][a-zA-Z_0-9]*)*)"
-      const R = new RegExp(`^\\s*(@?)\\s*${TESTS}?\\s*(?:${INT}|${IRI}\\s*${INT}?)?\\s*${ATTRS}\\s*\\/?`)
-      while(path && (m = path.match(R)) && m[0].length) {
-        const len = m[0].length;
-        path = path.substr(len);
-        consumed += len;
-        context = context.reduce(
-          (newValue, I) => newValue.concat(attr(m[1], m[6].split(/\./).splice(1), evaluateIndex(I, m[2], m[3] ? parseInt(m[3]) : null, m[4], m[5]))), []
-        )
-      }
-      if (path.length)
-        throw Error("unable to parse at offset " + consumed + ": " + path)
-      return context
-
-      function evaluateIndex (I, axis, i, N, Ni) {
-        // if (i || N /*|| axis*/) {
-        if (i || N || axis) {
-          if (I.type === "Shape" && axis !== "Shape" && "expression" in I)
-            I = I.expression;
-          else if (I.type === "TripleConstraint" && axis !== "TripleConstraint" && "valueExpr" in I)
-            I = I.valueExpr;
-        }
-        if (axis && I.type !== axis)
-          return []
-        if (!i && !N)
-          return [I]
-        if (I.type === "Schema") {
-          if (i) return [I.shapes[i-1]]
-          else if ("shapes" in I && (!Ni || Ni === 1)) return [N]
-        } else if (I.type === "ShapeOr" || I.type === "ShapeAnd") {
-          if (i && i - 1 >= 0 && i - 1 < I.shapeExprs.length) return [I.shapeExprs[i - 1]]
-        } else if (I.type === "ShapeNot") {
-          if (i && i === 1) return [I.shapeExpr]
-        } else if (I.type === "NodeConstraint") {
-        } else if (I.type === "Shape") {
-          // if ("expression" in I) return evaluateIndex(I.expression, axis, i, N, Ni)
-          if (i && i === 1) return [I]
-        } else if (I.type === "EachOf" || I.type === "OneOf") {
-          if (i) return [I.expressions[i-1]]
-          else {
-            let TCs = findByPredicate(N, I)
-            if (Ni) return [TCs[Ni-1]]
-            else return TCs
-          }
-        } if (I.type === "TripleConstraint") {
-          if (i && i === 1) return [I]
-          else if (N === I.predicate && (!Ni || Ni === 1)) return [I]
-        }
-        return []
-      }
-
-      function attr (follow, As, elts) {
-        const withAttrs = elts.map(
-          elt => As.reduce(
-            (acc, A) => typeof elt === "object" ? acc[A] : undefined, elt
-          )
-        ).filter(elt => elt)
-        return follow ? withAttrs.map(
-          elt => schema.shapes.find(se => se.id === RdfTerm.resolveRelativeIRI(iriResolver.base, elt)), []
-        ).filter(elt => elt) : withAttrs
-      }
-    }
-
-    // return set of triple constraints the shape expression I.expressions with a predicate of N.
-    function findByPredicate (N, expression) {
-      const visitor = _ShExUtil.Visitor()
-      let ret = []
-
-      const oldVisitTripleConstraint = visitor.visitTripleConstraint
-      visitor.visitTripleConstraint = function (expr) {
-        if (expr.predicate === N)
-          ret.push(expr)
-        return oldVisitTripleConstraint.call(visitor, expr)
-      }
-      visitor.visitExpression(expression)
-      return ret
-    }
   },
 
 };
@@ -4999,7 +4892,7 @@ if (typeof require !== "undefined" && typeof exports !== "undefined")
   module.exports = ShExValidator;
 
 }).call(this,require('_process'))
-},{"../lib/regex/nfax-val-1err":11,"../lib/regex/threaded-val-nerr":12,"./RdfTerm":7,"./ShExUtil":8,"_process":4}],10:[function(require,module,exports){
+},{"../lib/regex/nfax-val-1err":11,"../lib/regex/threaded-val-nerr":12,"./RdfTerm":7,"./ShExUtil":8,"_process":3}],10:[function(require,module,exports){
 // **ShExWriter** writes ShEx documents.
 
 var ShExWriter = (function () {
@@ -6543,8 +6436,8 @@ if (typeof require !== "undefined" && typeof exports !== "undefined")
 
 },{"../RdfTerm":7}],13:[function(require,module,exports){
 var HierarchyClosure = (function () {
-  /**
-   * @@ should be its own package
+  /** create a hierarchy object
+   * This object keeps track of direct children and parents as well as transitive children and parents.
    */
   function makeHierarchy () {
     let roots = {}
@@ -6553,8 +6446,8 @@ var HierarchyClosure = (function () {
     let holders = {}
     return {
       add: function (parent, child) {
-        if (parent in children && children[parent].indexOf(child) !== -1) {
-          // already seen
+        if (// test if this is a novel entry.
+          (parent in children && children[parent].indexOf(child) !== -1)) {
           return
         }
         let target = parent in holders
@@ -6563,9 +6456,7 @@ var HierarchyClosure = (function () {
         let value = getNode(child)
 
         target[child] = value
-        if (child in roots) {
-          delete roots[child]
-        }
+        delete roots[child]
 
         // // maintain hierarchy (direct and confusing)
         // children[parent] = children[parent].concat(child, children[child])
@@ -6577,9 +6468,13 @@ var HierarchyClosure = (function () {
         updateClosure(children, parents, child, parent)
         updateClosure(parents, children, parent, child)
         function updateClosure (container, members, near, far) {
-          container[far] = container[far].concat(near, container[near])
+          container[far] = container[far].filter(
+            e => /* e !== near && */ container[near].indexOf(e) === -1
+          ).concat(container[near].indexOf(near) === -1 ? [near] : [], container[near])
           container[near].forEach(
-            n => (members[n] = members[n].concat(far, members[far]))
+            n => (members[n] = members[n].filter(
+              e => e !== far && members[far].indexOf(e) === -1
+            ).concat(members[far].indexOf(far) === -1 ? [far] : [], members[far]))
           )
         }
 
@@ -6598,17 +6493,18 @@ var HierarchyClosure = (function () {
     }
   }
 
-  function walkHierarchy (n, f, p) {
+  function depthFirst (n, f, p) {
     return Object.keys(n).reduce((ret, k) => {
       return ret.concat(
-        walkHierarchy(n[k], f, k),
+        depthFirst(n[k], f, k),
         p ? f(k, p) : []) // outer invocation can have null parent
     }, [])
   }
 
-  return { create: makeHierarchy, walk: walkHierarchy }
+  return { create: makeHierarchy, depthFirst }
 })()
 
+/* istanbul ignore next */
 if (typeof require !== 'undefined' && typeof exports !== 'undefined') {
   module.exports = HierarchyClosure
 }
@@ -6629,7 +6525,7 @@ if (typeof require !== 'undefined' && typeof exports !== 'undefined')
 
 },{"./lib/RdfTerm":7,"./lib/ShExUtil":8,"./lib/ShExValidator":9,"./lib/ShExWriter":10,"./lib/regex/nfax-val-1err":11,"./lib/regex/threaded-val-nerr":12}],15:[function(require,module,exports){
 (function (process){
-/* parser generated by jison 0.4.16 */
+/* parser generated by jison 0.4.18 */
 /*
   Returns a Parser object of the following structure:
 
@@ -6731,8 +6627,8 @@ case 1:
             shapeExprs: Parser.shapes || new Map(),
             tripleExprs: Parser.productions || new Map()
           };
+          shexj._sourceMap = Parser._sourceMap;
         }
-        Parser.reset();
         return shexj;
       
 break;
@@ -6758,7 +6654,7 @@ break;
 case 20:
 
         if (Parser.start)
-          error("Parse error: start already defined");
+          error(new Error("Parse error: start already defined"), yy);
         Parser.start = shapeJunction("ShapeOr", $$[$0-1], $$[$0]); // t: startInline
       
 break;
@@ -6775,7 +6671,7 @@ this.$ = appendTo($$[$0-1], $$[$0]) // t: startCode3;
 break;
 case 26:
  // t: 1dot 1val1vsMinusiri3??
-        addShape($$[$0-1],  $$[$0]);
+        addShape($$[$0-1],  $$[$0], yy);
       
 break;
 case 27:
@@ -6827,7 +6723,7 @@ break;
 case 32: case 227: case 244:
 this.$ = null;
 break;
-case 33: case 37: case 40: case 46: case 53: case 162: case 184: case 243:
+case 33: case 37: case 40: case 46: case 53: case 184: case 243:
 this.$ = $$[$0];
 break;
 case 35:
@@ -6900,17 +6796,17 @@ case 87:
  // t: 1dotRefLNex@@
         $$[$0] = $$[$0].substr(1, $$[$0].length-1);
         var namePos = $$[$0].indexOf(':');
-        this.$ = expandPrefix($$[$0].substr(0, namePos)) + $$[$0].substr(namePos + 1); // ShapeRef
+        this.$ = addSourceMap(expandPrefix($$[$0].substr(0, namePos), yy) + $$[$0].substr(namePos + 1), yy); // ShapeRef
       
 break;
 case 88:
  // t: 1dotRefNS1@@
         $$[$0] = $$[$0].substr(1, $$[$0].length-1);
-        this.$ = expandPrefix($$[$0].substr(0, $$[$0].length - 1)); // ShapeRef
+        this.$ = addSourceMap(expandPrefix($$[$0].substr(0, $$[$0].length - 1), yy), yy); // ShapeRef
       
 break;
 case 89:
-this.$ = $$[$0] // ShapeRef // t: 1dotRef1, 1dotRefSpaceLNex, 1dotRefSpaceNS1;
+this.$ = addSourceMap($$[$0], yy) // ShapeRef // t: 1dotRef1, 1dotRefSpaceLNex, 1dotRefSpaceNS1;
 break;
 case 90: case 93:
  // t: !!
@@ -6933,7 +6829,7 @@ case 95:
         if (numericDatatypes.indexOf($$[$0-1]) === -1)
           numericFacets.forEach(function (facet) {
             if (facet in $$[$0])
-              error("Parse error: facet " + facet + " not allowed for unknown datatype " + $$[$0-1]);
+              error(new Error("Parse error: facet " + facet + " not allowed for unknown datatype " + $$[$0-1]), yy);
           });
         this.$ = extend({ type: "NodeConstraint", datatype: $$[$0-1] }, $$[$0]) // t: 1datatype
       
@@ -6950,7 +6846,7 @@ break;
 case 99:
 
         if (Object.keys($$[$0-1]).indexOf(Object.keys($$[$0])[0]) !== -1) {
-          error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times");
+          error(new Error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times"), yy);
         }
         this.$ = extend($$[$0-1], $$[$0]) // t: 1literalLength
       
@@ -6958,7 +6854,7 @@ break;
 case 101: case 107:
 
         if (Object.keys($$[$0-1]).indexOf(Object.keys($$[$0])[0]) !== -1) {
-          error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times");
+          error(new Error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times"), yy);
         }
         this.$ = extend($$[$0-1], $$[$0]) // t: !! look to 1literalLength
       
@@ -6975,7 +6871,7 @@ break;
 case 105:
 
         if (Object.keys($$[$0-1]).indexOf(Object.keys($$[$0])[0]) !== -1) {
-          error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times");
+          error(new Error("Parse error: facet "+Object.keys($$[$0])[0]+" defined multiple times"), yy);
         }
         this.$ = extend($$[$0-1], $$[$0])
       
@@ -7023,7 +6919,7 @@ case 123:
         else if (numericDatatypes.indexOf($$[$0]) !== -1)
           this.$ = parseInt($$[$0-2].value)
         else
-          error("Parse error: numeric range facet expected numeric datatype instead of " + $$[$0]);
+          error(new Error("Parse error: numeric range facet expected numeric datatype instead of " + $$[$0]), yy);
       
 break;
 case 124:
@@ -7127,11 +7023,14 @@ case 160:
 
         if ($$[$0-1]) {
           this.$ = extend({ id: $$[$0-1] }, $$[$0]);
-          addProduction($$[$0-1],  this.$);
+          addProduction($$[$0-1],  this.$, yy);
         } else {
           this.$ = $$[$0]
         }
       
+break;
+case 162:
+this.$ = addSourceMap($$[$0], yy);
 break;
 case 167:
 
@@ -7152,7 +7051,7 @@ case 170:
         // $$[$0]: t: 1dotCode1
 	if ($$[$0-3] !== EmptyShape && false) {
 	  var t = blank();
-	  addShape(t, $$[$0-3]);
+	  addShape(t, $$[$0-3], yy);
 	  $$[$0-3] = t; // ShapeRef
 	}
         // %6: t: 1inversedotCode1
@@ -7311,7 +7210,7 @@ case 217:
 this.$ = $$[$0] ? { type: "LanguageStem", stem: $$[$0-1] } /* t: 1val1languageStemMinuslanguageStem3 */ : $$[$0-1] // t: 1val1languageStemMinuslanguage3;
 break;
 case 218:
-this.$ = $$[$0] // Inclusion // t: 2groupInclude1;
+this.$ = addSourceMap($$[$0], yy) // Inclusion // t: 2groupInclude1;
 break;
 case 219:
 this.$ = { type: "Annotation", predicate: $$[$0-1], object: $$[$0] } // t: 1dotAnnotIRIREF;
@@ -7382,12 +7281,12 @@ break;
 case 258:
  // t:1dotPNex, 1dotPNdefault, ShExParser-test.js/with pre-defined prefixes
         var namePos = $$[$0].indexOf(':');
-        this.$ = expandPrefix($$[$0].substr(0, namePos)) + ShExUtil.unescapeText($$[$0].substr(namePos + 1), pnameEscapeReplacements);
+        this.$ = expandPrefix($$[$0].substr(0, namePos), yy) + ShExUtil.unescapeText($$[$0].substr(namePos + 1), pnameEscapeReplacements);
       
 break;
 case 259:
  // t: 1dotNS2, 1dotNSdefault, ShExParser-test.js/PNAME_NS with pre-defined prefixes
-        this.$ = expandPrefix($$[$0].substr(0, $$[$0].length - 1));
+        this.$ = expandPrefix($$[$0].substr(0, $$[$0].length - 1), yy);
       
 break;
 case 261:
@@ -7407,13 +7306,9 @@ parseError: function parseError (str, hash) {
     if (hash.recoverable) {
         this.trace(str);
     } else {
-        function _parseError (msg, hash) {
-            this.message = msg;
-            this.hash = hash;
-        }
-        _parseError.prototype = new Error();
-
-        throw new _parseError(str, hash);
+        var error = new Error(str);
+        error.hash = hash;
+        throw error;
     }
 },
 parse: function parse(input) {
@@ -7482,7 +7377,7 @@ parse: function parse(input) {
                     text: lexer.match,
                     token: this.terminals_[symbol] || symbol,
                     line: lexer.yylineno,
-                    loc: yyloc,
+                    loc: lexer.yylloc,
                     expected: expected
                 });
             }
@@ -7780,7 +7675,7 @@ parse: function parse(input) {
   var blankId = 0;
   Parser._resetBlanks = function () { blankId = 0; }
   Parser.reset = function () {
-    Parser._prefixes = Parser._imports = Parser.shapes = Parser.productions = Parser.start = Parser.startActs = null; // Reset state.
+    Parser._prefixes = Parser._imports = Parser._sourceMap = Parser.shapes = Parser.productions = Parser.start = Parser.startActs = null; // Reset state.
     Parser._base = Parser._baseIRI = Parser._baseIRIPath = Parser._baseIRIRoot = null;
   }
   var _fileName; // for debugging
@@ -7849,29 +7744,42 @@ parse: function parse(input) {
     };
   }
 
-  function error (msg) {
-    Parser.reset();
-    throw new Error(msg);
+  function error (e, yy) {
+    const hash = {
+      text: yy.lexer.match,
+      // token: this.terminals_[symbol] || symbol,
+      line: yy.lexer.yylineno,
+      loc: yy.lexer.yylloc,
+      // expected: expected
+      pos: yy.lexer.showPosition()
+    }
+    e.hash = hash;
+    if (Parser.recoverable) {
+      Parser.recoverable(e)
+    } else {
+      throw e;
+      Parser.reset();
+    }
   }
 
   // Expand declared prefix or throw Error
-  function expandPrefix (prefix) {
+  function expandPrefix (prefix, yy) {
     if (!(prefix in Parser._prefixes))
-      error('Parse error; unknown prefix: ' + prefix);
+      error(new Error('Parse error; unknown prefix "' + prefix + ':"'), yy);
     return Parser._prefixes[prefix];
   }
 
   // Add a shape to the map
-  function addShape (label, shape) {
+  function addShape (label, shape, yy) {
     if (Parser.productions && label in Parser.productions)
-      error("Structural error: "+label+" is a shape");
+      error(new Error("Structural error: "+label+" is a triple expression"), yy);
     if (!Parser.shapes)
       Parser.shapes = new Map();
     if (label in Parser.shapes) {
       if (Parser.options.duplicateShape === "replace")
         Parser.shapes[label] = shape;
       else if (Parser.options.duplicateShape !== "ignore")
-        error("Parse error: "+label+" already defined");
+        error(new Error("Parse error: "+label+" already defined"), yy);
     } else {
       shape.id = label;
       Parser.shapes[label] = shape;
@@ -7879,18 +7787,28 @@ parse: function parse(input) {
   }
 
   // Add a production to the map
-  function addProduction (label, production) {
+  function addProduction (label, production, yy) {
     if (Parser.shapes && label in Parser.shapes)
-      error("Structural error: "+label+" is a shape");
+      error(new Error("Structural error: "+label+" is a shape expression"), yy);
     if (!Parser.productions)
       Parser.productions = new Map();
     if (label in Parser.productions) {
       if (Parser.options.duplicateShape === "replace")
         Parser.productions[label] = production;
       else if (Parser.options.duplicateShape !== "ignore")
-        error("Parse error: "+label+" already defined");
+        error(new Error("Parse error: "+label+" already defined"), yy);
     } else
       Parser.productions[label] = production;
+  }
+
+  function addSourceMap (obj, yy) {
+    if (!Parser._sourceMap)
+      Parser._sourceMap = new Map();
+    let list = Parser._sourceMap.get(obj)
+    if (!list)
+      Parser._sourceMap.set(obj, list = []);
+    list.push(yy.lexer.yylloc);
+    return obj;
   }
 
   // shapeJunction judiciously takes a shapeAtom and an optional list of con/disjuncts.
@@ -8436,7 +8354,7 @@ if (typeof module !== 'undefined' && require.main === module) {
 }
 }
 }).call(this,require('_process'))
-},{"@shexjs/core":14,"_process":4,"fs":1,"path":3}],16:[function(require,module,exports){
+},{"@shexjs/core":14,"_process":3,"fs":1,"path":2}],16:[function(require,module,exports){
 var ShExParser = (function () {
 
 // stolen as much as possible from SPARQL.js
@@ -8467,27 +8385,37 @@ var prepareParser = function (baseIRI, prefixes, schemaOptions) {
     ShExJison._setBase(baseIRI);
     ShExJison._setFileName(baseIRI);
     ShExJison.options = schemaOptions;
+    let errors = [];
+    ShExJison.recoverable = e =>
+      errors.push(e);
+    let ret = null;
     try {
-      return ShExJison.prototype.parse.apply(parser, arguments);
+      ret = ShExJison.prototype.parse.apply(parser, arguments);
     } catch (e) {
-      // use the lexer's pretty-printing
-      var lineNo = "lexer" in parser.yy ? parser.yy.lexer.yylineno + 1 : 1;
-      var pos = "lexer" in parser.yy ? parser.yy.lexer.showPosition() : "";
-      var t = Error(`${baseIRI}(${lineNo}): ${e.message}\n${pos}`);
-      t.lineNo = lineNo;
-      t.context = pos;
-      if ("lexer" in parser.yy) {
-        parser.yy.lexer.matched = parser.yy.lexer.matched || "";
-        t.offset = parser.yy.lexer.matched.length;
-        t.width = parser.yy.lexer.match.length
-        t.lloc = parser.yy.lexer.yylloc;
-      } else {
-        // Failed before the Jison call to `yy.parser.yy = { lexer: yy.lexer}`
-        t.offset = t.width = t.lloc = 0;
+      errors.push(e);
+    }
+    ShExJison.reset();
+    errors.forEach(e => {
+      if ("hash" in e) {
+        const hash = e.hash;
+        const location = hash.loc;
+        delete hash.loc;
+        Object.assign(e, hash, {location: location});
       }
-      Error.captureStackTrace(t, runParser);
-      parser.reset();
-      throw t;
+      return e;
+    })
+    if (errors.length == 1) {
+      errors[0].parsed = ret;
+      throw errors[0];
+    } else if (errors.length) {
+      const all = new Error("" + errors.length  + " parser errors:\n" + errors.map(
+        e => contextError(e, parser.yy.lexer)
+      ).join("\n"));
+      all.errors = errors;
+      all.parsed = ret;
+      throw all;
+    } else {
+      return ret;
     }
   }
   parser.parse = runParser;
@@ -8501,6 +8429,14 @@ var prepareParser = function (baseIRI, prefixes, schemaOptions) {
   parser.reset = ShExJison.reset;
   ShExJison.options = schemaOptions;
   return parser;
+
+  function contextError (e, lexer) {
+    // use the lexer's pretty-printing
+    var line = e.location.first_line;
+    var col  = e.location.first_column + 1;
+    var posStr = "pos" in e.hash ? "\n" + e.hash.pos : ""
+    return `${baseIRI}\n line: ${line}, column: ${col}: ${e.message}${posStr}`;
+  }
 }
 
 return {

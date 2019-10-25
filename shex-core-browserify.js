@@ -1,29 +1,4 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.shexCore = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],2:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -208,6 +183,31 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 process.umask = function() { return 0; };
+
+},{}],2:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
 
 },{}],3:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
@@ -806,7 +806,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":3,"_process":2,"inherits":1}],5:[function(require,module,exports){
+},{"./support/isBuffer":3,"_process":1,"inherits":2}],5:[function(require,module,exports){
 /**
  *
  * isIRI, isBlank, getLiteralType, getLiteralValue
@@ -972,7 +972,9 @@ var RdfTerm = (function () {
         node = node.replace(escapeAll, characterReplacer);
       var pref = Object.keys(prefixes).find(pref => node.startsWith(prefixes[pref]));
       if (pref) {
-        return pref + node.substr(prefixes[pref].length);
+        var rest = node.substr(prefixes[pref].length);
+        if (rest.indexOf("\\") === -1) // could also say no more than n of these: [...]
+          return pref + ":" + rest.replace(/([~!$&'()*+,;=/?#@%])/g, '\\' + "$1");
       }
       if (node.startsWith(base)) {
         return "<" + node.substr(base.length) + ">";
@@ -1203,7 +1205,7 @@ var ShExUtil = {
         _ShExUtil._expect(schema, "type", "Schema");
         this._maybeSet(schema, ret, "Schema",
                        ["@context", "prefixes", "base", "imports", "startActs", "start", "shapes"],
-                       ["_base", "_prefixes", "_index"]
+                       ["_base", "_prefixes", "_index", "_sourceMap"]
                       );
         return ret;
       },
@@ -1680,8 +1682,8 @@ var ShExUtil = {
    */
   index: function (schema) {
     let index = {
-      shapeExprs: [],
-      tripleExprs: []
+      shapeExprs: new Map(),
+      tripleExprs: new Map()
     };
     let v = ShExUtil.Visitor();
 
@@ -1713,6 +1715,8 @@ var ShExUtil = {
     delete ret._base;
     let index = ret._index || this.index(schema);
     delete ret._index;
+    let sourceMap = ret._sourceMap;
+    delete ret._sourceMap;
     // Don't delete ret.productions as it's part of the AS.
     var v = ShExUtil.Visitor();
     var knownExpressions = [];
@@ -2206,7 +2210,7 @@ var ShExUtil = {
   merge: function (left, right, overwrite, inPlace) {
     var ret = inPlace ? left : this.emptySchema();
 
-    function copy (attr) {
+    function mergeArray (attr) {
       Object.keys(left[attr] || {}).forEach(function (key) {
         if (!(attr in ret))
           ret[attr] = {};
@@ -2221,6 +2225,21 @@ var ShExUtil = {
       });
     }
 
+    function mergeMap (attr) {
+      (left[attr] || new Map()).forEach(function (value, key, map) {
+        if (!(attr in ret))
+          ret[attr] = new Map();
+        ret[attr].set(key, left[attr].get(key));
+      });
+      (right[attr] || new Map()).forEach(function (value, key, map) {
+        if (!(attr  in left) || !(left[attr].has(key)) || overwrite) {
+          if (!(attr in ret))
+            ret[attr] = new Map();
+          ret[attr].set(key, right[attr].get(key));
+        }
+      });
+    }
+
     // base
     if ("_base" in left)
       ret._base = left._base;
@@ -2228,7 +2247,9 @@ var ShExUtil = {
       if (!("_base" in left) || overwrite)
         ret._base = right._base;
 
-    copy("_prefixes");
+    mergeArray("_prefixes");
+
+    mergeMap("_sourceMap");
 
     if ("imports" in right)
       if (!("imports" in left) || overwrite)
@@ -2338,9 +2359,9 @@ var ShExUtil = {
     var oldVisitShapeRef = visitor.visitShapeRef;
     visitor.visitShapeRef = function (shapeRef) {
       if (!(shapeRef in index.shapeExprs))
-        throw Error("Structural error: reference to " + JSON.stringify(shapeRef) + " not found in schema shape expressions:\n" + dumpKeys(index.shapeExprs) + ".");
+        throw firstError(Error("Structural error: reference to " + JSON.stringify(shapeRef) + " not found in schema shape expressions:\n" + dumpKeys(index.shapeExprs) + "."), shapeRef);
       if (!inTE && shapeRef === currentLabel)
-        throw Error("Structural error: circular reference to " + currentLabel + ".");
+        throw firstError(Error("Structural error: circular reference to " + currentLabel + "."), shapeRef);
       (currentNegated ? negativeDeps : positiveDeps).add(currentLabel, shapeRef)
       return oldVisitShapeRef.call(visitor, shapeRef);
     }
@@ -2349,7 +2370,7 @@ var ShExUtil = {
     visitor.visitInclusion = function (inclusion) {
       var refd;
       if (!(refd = index.tripleExprs[inclusion]))
-        throw Error("Structural error: included shape " + inclusion + " not found in schema triple expressions:\n" + dumpKeys(index.tripleExprs) + ".");
+        throw firstError(Error("Structural error: included shape " + inclusion + " not found in schema triple expressions:\n" + dumpKeys(index.tripleExprs) + "."), inclusion);
       // if (refd.type !== "Shape")
       //   throw Error("Structural error: " + inclusion + " is not a simple shape.");
       return oldVisitInclusion.call(visitor, inclusion);
@@ -2366,12 +2387,18 @@ var ShExUtil = {
       ).length > 0
     );
     if (circs.length)
-      throw Error("Structural error: circular negative dependencies on " + circs.join(',') + ".");
+      throw firstError(Error("Structural error: circular negative dependencies on " + circs.join(',') + "."), circs[0]);
 
     function dumpKeys (obj) {
       return obj ? Object.keys(obj).map(
         u => u.substr(0, 2) === '_:' ? u : '<' + u + '>'
       ).join("\n        ") : '- none defined -'
+    }
+
+    function firstError (e, obj) {
+      if ("_sourceMap" in schema)
+        e.location = (schema._sourceMap.get(obj) || [undefined])[0];
+      return e;
     }
   },
 
@@ -3281,140 +3308,6 @@ var ShExUtil = {
       return string;
     }
     catch (error) { console.warn(error); return ''; }
-  },
-
-  shexPath: function (schema, const_iriResolver) {
-    var _ShExUtil = this;
-    const navigation = new Map()
-    navigation.set(schema, []) // schema has no parents
-
-    const parents = [schema]
-    const visitor = _ShExUtil.Visitor()
-
-    const oldVisitExpression = visitor.visitExpression
-    visitor.visitExpression = function (expr) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitExpression.call(visitor, expr)
-      parents.pop()
-      return ret
-    }
-
-    const oldVisitShapeExpr = visitor.visitShapeExpr
-    visitor.visitShapeExpr = function (expr, label) {
-      navigation.set(expr, parents.slice())
-      parents.push(expr)
-      let ret = oldVisitShapeExpr.call(visitor, expr, label)
-      parents.pop()
-      return ret
-    }
-
-    visitor.visitSchema(schema)
-
-    return {
-      search: search
-    }
-
-    /**
-     * invocation:
-     *   .search("/my:path")
-     *   .search("/my:path", schema.shapes[1])
-     *   .search("/my:path", [schema.shapes[1]])
-     */
-    function search (path, context = [schema], iriResolver = const_iriResolver) {
-      if (context.constructor !== Array) {
-        context = [context]
-      }
-      if (path[0] === '/') {
-        context = [schema]
-        path = path.substr(1)
-      }
-      let m;
-      let consumed = 0;
-      const TESTS = "("
-            + [ "ShapeOr", "ShapeAnd", "ShapeNot",
-                "NodeConstraint", "Shape",
-                "EachOf", "OneOf", "TripleConstraint" ].join("|")
-            + ")";
-      const INT = "([1-9][0-9]*)"
-      const IRI = "<([^>]+)>"
-      const ATTRS = "((?:\\.[a-zA-Z_][a-zA-Z_0-9]*)*)"
-      const R = new RegExp(`^\\s*(@?)\\s*${TESTS}?\\s*(?:${INT}|${IRI}\\s*${INT}?)?\\s*${ATTRS}\\s*\\/?`)
-      while(path && (m = path.match(R)) && m[0].length) {
-        const len = m[0].length;
-        path = path.substr(len);
-        consumed += len;
-        context = context.reduce(
-          (newValue, I) => newValue.concat(attr(m[1], m[6].split(/\./).splice(1), evaluateIndex(I, m[2], m[3] ? parseInt(m[3]) : null, m[4], m[5]))), []
-        )
-      }
-      if (path.length)
-        throw Error("unable to parse at offset " + consumed + ": " + path)
-      return context
-
-      function evaluateIndex (I, axis, i, N, Ni) {
-        // if (i || N /*|| axis*/) {
-        if (i || N || axis) {
-          if (I.type === "Shape" && axis !== "Shape" && "expression" in I)
-            I = I.expression;
-          else if (I.type === "TripleConstraint" && axis !== "TripleConstraint" && "valueExpr" in I)
-            I = I.valueExpr;
-        }
-        if (axis && I.type !== axis)
-          return []
-        if (!i && !N)
-          return [I]
-        if (I.type === "Schema") {
-          if (i) return [I.shapes[i-1]]
-          else if ("shapes" in I && (!Ni || Ni === 1)) return [N]
-        } else if (I.type === "ShapeOr" || I.type === "ShapeAnd") {
-          if (i && i - 1 >= 0 && i - 1 < I.shapeExprs.length) return [I.shapeExprs[i - 1]]
-        } else if (I.type === "ShapeNot") {
-          if (i && i === 1) return [I.shapeExpr]
-        } else if (I.type === "NodeConstraint") {
-        } else if (I.type === "Shape") {
-          // if ("expression" in I) return evaluateIndex(I.expression, axis, i, N, Ni)
-          if (i && i === 1) return [I]
-        } else if (I.type === "EachOf" || I.type === "OneOf") {
-          if (i) return [I.expressions[i-1]]
-          else {
-            let TCs = findByPredicate(N, I)
-            if (Ni) return [TCs[Ni-1]]
-            else return TCs
-          }
-        } if (I.type === "TripleConstraint") {
-          if (i && i === 1) return [I]
-          else if (N === I.predicate && (!Ni || Ni === 1)) return [I]
-        }
-        return []
-      }
-
-      function attr (follow, As, elts) {
-        const withAttrs = elts.map(
-          elt => As.reduce(
-            (acc, A) => typeof elt === "object" ? acc[A] : undefined, elt
-          )
-        ).filter(elt => elt)
-        return follow ? withAttrs.map(
-          elt => schema.shapes.find(se => se.id === RdfTerm.resolveRelativeIRI(iriResolver.base, elt)), []
-        ).filter(elt => elt) : withAttrs
-      }
-    }
-
-    // return set of triple constraints the shape expression I.expressions with a predicate of N.
-    function findByPredicate (N, expression) {
-      const visitor = _ShExUtil.Visitor()
-      let ret = []
-
-      const oldVisitTripleConstraint = visitor.visitTripleConstraint
-      visitor.visitTripleConstraint = function (expr) {
-        if (expr.predicate === N)
-          ret.push(expr)
-        return oldVisitTripleConstraint.call(visitor, expr)
-      }
-      visitor.visitExpression(expression)
-      return ret
-    }
   },
 
 };
@@ -4691,7 +4584,7 @@ if (typeof require !== "undefined" && typeof exports !== "undefined")
   module.exports = ShExValidator;
 
 }).call(this,require('_process'))
-},{"../lib/regex/nfax-val-1err":9,"../lib/regex/threaded-val-nerr":10,"./RdfTerm":5,"./ShExUtil":6,"_process":2}],8:[function(require,module,exports){
+},{"../lib/regex/nfax-val-1err":9,"../lib/regex/threaded-val-nerr":10,"./RdfTerm":5,"./ShExUtil":6,"_process":1}],8:[function(require,module,exports){
 // **ShExWriter** writes ShEx documents.
 
 var ShExWriter = (function () {
@@ -6235,8 +6128,8 @@ if (typeof require !== "undefined" && typeof exports !== "undefined")
 
 },{"../RdfTerm":5}],11:[function(require,module,exports){
 var HierarchyClosure = (function () {
-  /**
-   * @@ should be its own package
+  /** create a hierarchy object
+   * This object keeps track of direct children and parents as well as transitive children and parents.
    */
   function makeHierarchy () {
     let roots = {}
@@ -6245,8 +6138,8 @@ var HierarchyClosure = (function () {
     let holders = {}
     return {
       add: function (parent, child) {
-        if (parent in children && children[parent].indexOf(child) !== -1) {
-          // already seen
+        if (// test if this is a novel entry.
+          (parent in children && children[parent].indexOf(child) !== -1)) {
           return
         }
         let target = parent in holders
@@ -6255,9 +6148,7 @@ var HierarchyClosure = (function () {
         let value = getNode(child)
 
         target[child] = value
-        if (child in roots) {
-          delete roots[child]
-        }
+        delete roots[child]
 
         // // maintain hierarchy (direct and confusing)
         // children[parent] = children[parent].concat(child, children[child])
@@ -6269,9 +6160,13 @@ var HierarchyClosure = (function () {
         updateClosure(children, parents, child, parent)
         updateClosure(parents, children, parent, child)
         function updateClosure (container, members, near, far) {
-          container[far] = container[far].concat(near, container[near])
+          container[far] = container[far].filter(
+            e => /* e !== near && */ container[near].indexOf(e) === -1
+          ).concat(container[near].indexOf(near) === -1 ? [near] : [], container[near])
           container[near].forEach(
-            n => (members[n] = members[n].concat(far, members[far]))
+            n => (members[n] = members[n].filter(
+              e => e !== far && members[far].indexOf(e) === -1
+            ).concat(members[far].indexOf(far) === -1 ? [far] : [], members[far]))
           )
         }
 
@@ -6290,17 +6185,18 @@ var HierarchyClosure = (function () {
     }
   }
 
-  function walkHierarchy (n, f, p) {
+  function depthFirst (n, f, p) {
     return Object.keys(n).reduce((ret, k) => {
       return ret.concat(
-        walkHierarchy(n[k], f, k),
+        depthFirst(n[k], f, k),
         p ? f(k, p) : []) // outer invocation can have null parent
     }, [])
   }
 
-  return { create: makeHierarchy, walk: walkHierarchy }
+  return { create: makeHierarchy, depthFirst }
 })()
 
+/* istanbul ignore next */
 if (typeof require !== 'undefined' && typeof exports !== 'undefined') {
   module.exports = HierarchyClosure
 }
