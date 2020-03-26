@@ -6,12 +6,14 @@
 (function () {
   const NS_Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
   const IRI_RdfType = NS_Rdf + "type"
+  const IRI_RdfLangString = NS_Rdf + "langString"
   const NS_Rdfs = "http://www.w3.org/2000/01/rdf-schema#"
   const IRI_RdfsSubClassOf = NS_Rdfs + "subClassOf"
   const IRI_Xsd = "http://www.w3.org/2001/XMLSchema#"
   const IRI_XsdString = IRI_Xsd + "string"
   const IRI_XsdInteger = IRI_Xsd + "integer"
   const IRI_XsdDecimal = IRI_Xsd + "decimal"
+  const IRI_XsdDateTime = IRI_Xsd + "dateTime"
   const NS_Dc = "http://purl.org/dc/elements/1.1/"
   const IRI_DcTitle = NS_Dc + "title"
   const FACETS_string = ["pattern", "length", "minlength", "maxlength"]
@@ -306,9 +308,9 @@
   function getShExApiParms (span) {
     const schema = Editables.schema.val().replace(/^\n +/, "")
     const data = Editables.data.val().replace(/^\n +/, "")
-    const shapeMap = localName($("#focus-node").val(), Meta.data)
+    const shapeMap = localName($("#focus-node").val() || "", Meta.data)
           + "@"
-          + localName($("#start-shape").val(), Meta.shexc)
+          + localName($("#start-shape").val() || "", Meta.shexc)
     return { schema, data, shapeMap }
   }
 
@@ -553,8 +555,14 @@
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_XsdString:
+        case IRI_XsdDateTime:
         case IRI_XsdInteger:
           return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
+        case IRI_RdfLangString:
+          return [validatedInput(s => {
+            debugger
+            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + 'en'
+          })]
         default:
           throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
@@ -626,6 +634,8 @@
     }
 
     function paintTripleConstraint (tc) {
+      if (tc.max === 0)
+        return []
       let label = findLabel(tc);
       let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
       if (typeof tc.max !== "undefined" && tc.max !== 1)
