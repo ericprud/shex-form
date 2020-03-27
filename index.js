@@ -38,6 +38,38 @@
   const TERM_LayoutPath = F.namedNode(NS_Layout + "path")
   const TERM_LayoutRef = F.namedNode(NS_Layout + "ref")
 
+
+  /** ShExType -- classify @parm as a ShExJ type or IRIREF or Literal
+   */
+  function ShExType (parm) {
+    switch (typeof parm) {
+    case "string": return ShExType.IRIREF
+    case "object":
+      switch (parm.type) {
+      case "": return ShExType.Literal
+        // case null: return "null"
+        // case "undefined": return undefined
+      default:
+        const ret = ShExType[parm.type]
+        if (ret) return ret
+        if ("value" in parm) return ShExType.Literal
+        throw Error("unknown object: " + JSON.stringify(parm))
+      }
+    default: throw Error("unknown term: " + JSON.stringify(parm))
+    }
+  }
+  Object.assign(ShExType,
+                [ "IRIREF", "Literal", "Schema",
+                  "ShapeOr", "ShapeAnd", "ShapeNot", "ShapeExternal", "NodeConstraint", "Shape",
+                  "ObjectLiteral", "IriStem", "IriStemRange", "LiteralStem", "LiteralStemRange",
+                  "Language", "LanguageStem", "LanguageStemRange", "Wildcard",
+                  "EachOf", "OneOf", "TripleConstraint",
+                  "SemAct", "Annotation"].reduce((acc, key) => {
+                    acc[key] = "ShExType " + key;
+                    return acc;
+                  }, {}))
+
+
   let Meta = {
     shexc: {
       prefixes: {},
@@ -58,7 +90,9 @@
     { label: "js", name: "shex.js",
       link: "http://rawgit.com/shexSpec/shex.js/extends/packages/shex-webapp/doc/shex-simple.html?" },
     { label: "scala", name: "rdfshape",
-      link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" }
+      link: "http://rdfshape.weso.es/validate?triggerMode=ShapeMap&" },
+    { label: "form", name: "shex-form",
+      link: "?" }
   ]
 
   const SchemaEditor = ace.edit("schema-editor")
@@ -77,6 +111,7 @@
       }}
   ].concat(Object.values(Editables))
 
+  // enable ace editors
   Object.values(Editables).forEach(edible => {
     edible.editor = ace.edit($(edible.selector).get(0))
     edible.editor.setTheme("ace/theme/textmate")
@@ -92,11 +127,25 @@
     pair => pair.split("=").map(decodeURIComponent)
   )
 
-  CGIparms.filter(
-    p => p[0] === "manifestURL"
-  ).map(
-    p => new URL(p[1], location) // just the value
-  ).forEach(loadManifest)
+  // load manifest(s)
+  CGIparms.forEach(p => {
+    if (p[0] === "manifestURL") {
+      const mURL = new URL(p[1], location)
+      fetch(mURL).
+        then(resp => resp.json()).
+        then(j => loadManifest(j, mURL))
+    } else if (p[0] === "manifest") {
+      loadManifest(JSON.parse(p[1]), location.href)
+    }
+  })
+
+  // load shape, layout, data, etc. from the rest of the CGI parms
+  loadManifestEntry(CGIparms.filter(
+    p => p[0] !== "manifestURL"
+  ).reduce((acc, p) => {
+    acc[p[0]] = p[1]
+    return acc
+  }, {}), location.href);
 
   // re-generate start shape select whenever clicked
   $("#start-shape").on("mousedown", evt => {
@@ -199,36 +248,40 @@
 
   return
 
-  function loadManifest (mURL) {
+  function loadManifest (entries, base) {
     let buttons = []
-    fetch(mURL).then(
-      resp => resp.json()
-    ).then(
-      j => j.forEach(entry => {
-        const newButton = $("<button/>").text(entry.title).attr("title", entry.desc).on("click", evt => {
-          let target = $(evt.target)
-          if (target.hasClass("selected")) {
-            Object.values(Editables).forEach(ed => {
-              ed.val("")
-            })
-            target.removeClass("selected")
-          } else {
-            buttons.forEach(b => b.removeClass("selected"))
-            loadManifestEntry(entry, mURL)
-            target.addClass("selected")
-          }
-        })
-        buttons.push(newButton)
-        const toAdd = $("<li/>").append(newButton)
-        $(".manifest").append(toAdd)
+    entries.forEach(entry => {
+      const newButton = $("<button/>").text(entry.title).attr("title", entry.desc).on("click", evt => {
+        let target = $(evt.target)
+        if (target.hasClass("selected")) {
+          Object.values(Editables).forEach(ed => {
+            ed.val("")
+          })
+          target.removeClass("selected")
+        } else {
+          buttons.forEach(b => b.removeClass("selected"))
+          loadManifestEntry(entry, base)
+          target.addClass("selected")
+        }
       })
-    )
+      buttons.push(newButton)
+      const toAdd = $("<li/>").append(newButton)
+      $(".manifest").append(toAdd)
+    })
   }
 
   function loadManifestEntry (entry, baseURL) {
     Promise.all(InputLoaders.map(loader => {
-      const urlOrValue = entry[loader.parm]
-      if (loader.parm.endsWith("URL")) {
+      let isURL = loader.parm.endsWith("URL");
+      const direct = isURL ? loader.parm.substr(0, loader.parm.length-3) : null
+      let urlOrValue = entry[loader.parm]
+      if (isURL && urlOrValue === undefined && direct in entry) {
+        isURL = false
+        urlOrValue = entry[direct]
+      }
+      if (urlOrValue == undefined) {
+        // wasn't passed; leave it alone
+      } else if (isURL) {
         const fromURL = new URL(urlOrValue, baseURL)
         return fetch(fromURL).then(resp => resp.text()).then(text => {
           loader.val(text)
@@ -306,17 +359,19 @@
   }
 
   function getShExApiParms (span) {
+    const schemaFormat = $("#schemaFormat").val();
     const schema = Editables.schema.val().replace(/^\n +/, "")
     const data = Editables.data.val().replace(/^\n +/, "")
     const shapeMap = localName($("#focus-node").val() || "", Meta.data)
           + "@"
           + localName($("#start-shape").val() || "", Meta.shexc)
-    return { schema, data, shapeMap }
+    return { schemaFormat, schema, data, shapeMap }
   }
 
   function createLink (base, shExApiParms) {
     return base + [
       "interface=minimal",
+      "schemaFormat=" + encodeURIComponent(shExApiParms.schemaFormat),
       "schema=" + encodeURIComponent(shExApiParms.schema),
       "data=" + encodeURIComponent(shExApiParms.data),
       "shape-map=" + encodeURIComponent(shExApiParms.shapeMap)
@@ -554,17 +609,16 @@
 
       if ("datatype" in nc)
         switch (nc.datatype) {
-        case IRI_XsdString:
-        case IRI_XsdDateTime:
-        case IRI_XsdInteger:
-          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
+        // case IRI_XsdString:
+        // case IRI_XsdDateTime:
+        // case IRI_XsdInteger:
         case IRI_RdfLangString:
           return [validatedInput(s => {
-            debugger
             return "\"" + s.replace(/"/g, "\\\"") + "\"@" + 'en'
           })]
         default:
-          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
+          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
+          // throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
 
       if ("nodeKind" in nc)
@@ -577,8 +631,11 @@
 
       if ("values" in nc)
         return [$("<select/>").append(nc.values.map(v => {
-          let vStr = typeof v === "object"
+          const vType = ShExType(v);
+          let vStr = vType === ShExType.Literal
               ? v.value      // a string
+              : vType === ShExType.IriStem // crappy solution; should it be an input?
+              ? v.stem
               : localName(v, Meta.shexc) // an IRI
           return $("<option/>", {value: vStr}).text(vStr)
         }))]
@@ -793,11 +850,13 @@
 
       if ("datatype" in nc)
         switch (nc.datatype) {
-        case IRI_XsdString:
-        case IRI_XsdInteger:
-          return [validatedInput(s => scalarize(s, nc.datatype)).val(tested.object.value)]
+        case IRI_RdfLangString:
+          return [validatedInput(s => {
+            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + 'en'
+          })]
         default:
-          throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
+          return [validatedInput(s => scalarize(s, nc.datatype)).val(tested.object.value)]
+          // throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
 
       if ("nodeKind" in nc)
@@ -810,10 +869,13 @@
 
       if ("values" in nc) {
         let jElt = $("<select/>").append(nc.values.map(v => {
-          let vStr = typeof v === "object"
+          const vType = ShExType(v);
+          let vStr = vType === ShExType.Literal
               ? v.value      // a string
+              : vType === ShExType.IriStem // crappy solution; should it be an input?
+              ? v.stem
               : localName(v, Meta.shexc) // an IRI
-          let ret = $("<option/>", {value: typeof v === "object" ? scalarize(v.value, v.datatype) : v }).text(vStr)
+          let ret = $("<option/>", {value: vType === ShExType.Literal ? scalarize(v.value, v.datatype) : v }).text(vStr)
           let mStr = typeof tested.object === "object"
               ? tested.object.value      // a string
               : localName(tested.object, Meta.shexc) // an IRI
