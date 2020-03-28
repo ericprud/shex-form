@@ -68,7 +68,7 @@
                     acc[key] = "ShExType " + key;
                     return acc;
                   }, {}))
-
+  ShExType.stems = Object.keys(ShExType).filter(t => t.match(/stem/i)).map(k => ShExType[k])
 
   let Meta = {
     shexc: {
@@ -630,16 +630,19 @@
         }
 
       if ("values" in nc)
-        return [$("<select/>").append(nc.values.map(v => {
-          const vType = ShExType(v);
-          let vStr = vType === ShExType.Literal
-              ? v.value      // a string
-              : vType === ShExType.IriStem // crappy solution; should it be an input?
-              ? v.stem
-              : localName(v, Meta.shexc) // an IRI
-          return $("<option/>", {value: vStr}).text(vStr)
-        }))]
-
+        if (nc.values.find(v => ShExType.stems.indexOf(ShExType(v)) !== -1)) {
+          return [validatedInput(s => s)]
+        } else {
+          return [$("<select/>").append(nc.values.map(v => {
+            const vType = ShExType(v);
+            let vStr = vType === ShExType.Literal
+                ? v.value      // a string
+                : vType === ShExType.IriStem // crappy solution; should it be an input?
+                ? v.stem
+                : localName(v, Meta.shexc) // an IRI
+            return $("<option/>", {value: vStr}).text(vStr)
+          }))]
+        }
       let list = facets.filter(f => FACETS_numericRange.includes(f))
       if (list.length > 0)
         return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc[list[0]].datatype)]
@@ -868,24 +871,28 @@
         }
 
       if ("values" in nc) {
-        let jElt = $("<select/>").append(nc.values.map(v => {
-          const vType = ShExType(v);
-          let vStr = vType === ShExType.Literal
-              ? v.value      // a string
-              : vType === ShExType.IriStem // crappy solution; should it be an input?
-              ? v.stem
-              : localName(v, Meta.shexc) // an IRI
-          let ret = $("<option/>", {value: vType === ShExType.Literal ? scalarize(v.value, v.datatype) : v }).text(vStr)
-          let mStr = typeof tested.object === "object"
-              ? tested.object.value      // a string
-              : localName(tested.object, Meta.shexc) // an IRI
-          if (mStr === vStr)
-            ret.attr("selected", "selected")
-          return ret
-        })).data("triple", tested).on("blur", evt => {
-          markChange(jElt, tested, jElt.val())
-        })
-        return [jElt]
+        if (nc.values.find(v => ShExType.stems.indexOf(ShExType(v)) !== -1)) {
+          return [validatedInput(s => s).val(tested.object)]
+        } else {
+          let jElt = $("<select/>").append(nc.values.map(v => {
+            const vType = ShExType(v);
+            let vStr = vType === ShExType.Literal
+                ? v.value      // a string
+                // : vType === ShExType.IriStem // crappy solution; should it be an input?
+                // ? v.stem
+                : localName(v, Meta.shexc) // an IRI
+            let ret = $("<option/>", {value: vType === ShExType.Literal ? scalarize(v.value, v.datatype) : v }).text(vStr)
+            let mStr = typeof tested.object === "object"
+                ? tested.object.value      // a string
+                : localName(tested.object, Meta.shexc) // an IRI
+            if (mStr === vStr)
+              ret.attr("selected", "selected")
+            return ret
+          })).data("triple", tested).on("blur", evt => {
+            markChange(jElt, tested, jElt.val())
+          })
+          return [jElt]
+        }
       }
 
       let list = facets.filter(f => FACETS_numericRange.includes(f))
