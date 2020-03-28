@@ -387,7 +387,7 @@
         $("<option/>", Object.assign(
           {value: shape.id},
           shape.id === selected ? { selected: "selected" } : {}
-        )).append(localName(shape.id, Meta.shexc))
+        )).append(localName(shape.id, Meta.shexc).replace(/</g, "&lt;").replace(/>/g, "&gt;"))
     ))
     return schema
   }
@@ -410,7 +410,7 @@
         $("<option/>", Object.assign(
           {value: node},
           node === selected ? { selected: "selected" } : {}
-        )).text(localName(node, Meta.data))
+        )).text(localName(node, Meta.data).replace(/</g, "&lt;").replace(/>/g, "&gt;"))
     ))
     return graph
   }
@@ -573,6 +573,15 @@
         return paintShape(shexpr)
       case "NodeConstraint":
         return paintNodeConstraint(shexpr)
+      case "ShapeAnd":
+        const shapes = shexpr.shapeExprs.filter(s => s.type === "Shape")
+        if (shapes.length === 1)
+          return paintShape(shapes[0])
+      case "ShapeOr":
+        return shexpr.shapeExprs.reduce(
+          (acc, nested, idx) =>
+            (idx > 0 ? acc.concat(" OR ") : acc).concat(paintShapeExpression(nested)), []
+        )
       default: throw Error("paintShapeExpression(" + shexpr.type + ")")
       }
     }
@@ -674,7 +683,7 @@
       case "EachOf":
         return texpr.expressions.reduce(
           (acc, nested) =>
-            acc.concat(paintTripleExpression (nested)), []
+            acc.concat(paintTripleExpression(nested)), []
         )
       case "OneOf":
         return $("<li/>", { class: "disjunction" }).append(
@@ -822,6 +831,15 @@
         return paintShape(shexpr, tested)
       case "NodeConstraint":
         return paintNodeConstraint(shexpr, tested)
+      case "ShapeAnd":
+        const shapes = shexpr.shapeExprs.filter(s => s.type === "Shape")
+        if (shapes.length === 1)
+          return paintShape(shapes[0], tested)
+      case "ShapeOr":
+        return shexpr.shapeExprs.reduce(
+          (acc, nested, idx) =>
+            (idx > 0 ? acc.concat(" OR ") : acc).concat(paintShapeExpression(nested, tested)), []
+        )
       default: throw Error("paintShapeExpression(" + shexpr.type + ")")
       }
     }
