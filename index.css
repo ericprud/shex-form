@@ -31,7 +31,8 @@
 .shape .error { border: thin solid red; }
 .top > * { display: inline; height: 1.5em; padding-right: .5em; }
 h1 { margin: 0; }
-.shape input, .shape select { margin-left: 1em; padding: .2em 0.4em; border: none; background-color: antiquewhite; min-width: 14em; }
+.shape .predicate { margin-right: 1em; }
+.shape input, .shape select { padding: .2em 0.4em; border: none; background-color: antiquewhite; }
 input[readonly] { background-color: lightgrey; }
 #form ul { margin: 0; }
 #form li { line-height: 2em; }

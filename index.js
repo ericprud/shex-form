@@ -597,7 +597,8 @@
         return $("<input/>").on("blur", evt => {
           let jElt = $(evt.target)
           let lexicalValue = jElt.val()
-          let res = validator._validateShapeExpr(null, makeTerm(lexicalValue), nc, "", null, {})
+          const newTerm = makeTerm(lexicalValue, evt)
+          let res = validator._validateShapeExpr(null, newTerm, nc, "", null, {})
           if ("errors" in res) {
             console.warn(res)
             jElt.addClass("error").attr("title", res.errors.map(e => e.error).join("\n--\n"))
@@ -613,11 +614,13 @@
         // case IRI_XsdDateTime:
         // case IRI_XsdInteger:
         case IRI_RdfLangString:
-          return [validatedInput(s => {
-            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + 'en'
-          })]
+          return [$("<span/>").append("\"", validatedInput((s, evt) => {
+            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + $(evt.target.nextElementSibling).val()
+          }), "\"@", validatedInput(
+            (s, evt) => "\""+$(evt.target.previousElementSibling).val()+"\"@" + s
+          ).attr("size", 5).val("en"))]
         default:
-          return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc.datatype)]
+          return [$("<span/>").append("\"", validatedInput(s => scalarize(s, nc.datatype)), "\"^^"+localName(nc.datatype, Meta.shexc))]
           // throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
 
@@ -645,17 +648,21 @@
         }
       let list = facets.filter(f => FACETS_numericRange.includes(f))
       if (list.length > 0)
-        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + nc[list[0]].datatype)]
+        return [validatedInput(s => scalarize(s, nc[list[0]].datatype))]
 
       list = facets.filter(f => FACETS_numericLength.includes(f))
       if (list.length > 0)
-        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + IRI_XsdDecimal)]
+        return [validatedInput(s => scalarize(s, IRI_XsdDecimal))]
 
       list = facets.filter(f => FACETS_string.includes(f))
       if (list.length > 0)
-        return [validatedInput(s => "\"" + s.replace(/"/g, "\\\"") + "\"^^" + IRI_XsdString)]
+        return [validatedInput(s => scalarize(s, IRI_XsdString))]
 
       throw Error("ProgramFlowError: paintNodeConstraint arrived at bottom")
+    }
+
+    function scalarize (s, datatype) {
+      return "\"" + s.replace(/"/g, "\\\"") + "\"^^" + datatype
     }
 
     function paintTripleExpression (texpr) {
@@ -697,7 +704,7 @@
       if (tc.max === 0)
         return []
       let label = findLabel(tc);
-      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
+      let ret = $("<li/>").append($("<span/>", {class: "predicate"}).text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc)))
       if (typeof tc.max !== "undefined" && tc.max !== 1)
         ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       if (tc.valueExpr) {
@@ -838,7 +845,7 @@
       function validatedInput (makeTerm) {
         let jElt = $("<input/>").data("triple", tested).on("blur", evt => {
           let lexicalValue = jElt.val()
-          let newTerm = makeTerm(lexicalValue)
+          let newTerm = makeTerm(lexicalValue, evt)
           let res = validator._validateShapeExpr(null, newTerm, nc, "", null, {})
           if ("errors" in res) {
             console.warn(res)
@@ -854,11 +861,13 @@
       if ("datatype" in nc)
         switch (nc.datatype) {
         case IRI_RdfLangString:
-          return [validatedInput(s => {
-            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + 'en'
-          })]
+          return [$("<span/>").append("\"", validatedInput((s, evt) => {
+            return "\"" + s.replace(/"/g, "\\\"") + "\"@" + $(evt.target.nextElementSibling).val()
+          }).val(tested.object.value), "\"@", validatedInput(
+            (s, evt) => "\""+$(evt.target.previousElementSibling).val()+"\"@" + s
+          ).attr("size", 5).val(tested.object.language))]
         default:
-          return [validatedInput(s => scalarize(s, nc.datatype)).val(tested.object.value)]
+          return [$("<span/>").append("\"", validatedInput(s => scalarize(s, nc.datatype)).val(tested.object.value), "\"^^"+localName(nc.datatype, Meta.shexc))]
           // throw Error("paintNodeConstraint({datatype: " + nc.datatype + "})")
         }
 
@@ -950,11 +959,11 @@
 
     function paintTripleConstraint (tc) {
       let label = findLabel(tc);
-      let ret = $("<li/>").text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc))
+      let ret = $("<li/>").append($("<span/>", {class: "predicate"}).text(label ? label.object.value : tc.predicate === IRI_RdfType ? "a" : localName(tc.predicate, Meta.shexc)))
       // if (typeof tc.max !== "undefined" && tc.max !== 1)
       //   ret.append([" ", $("<span/>", { class: "add" }).text("+")])
       return [ret.append(tc.solutions.reduce(
-        (acc, soln) => {
+        (acc, soln, idx) => {
           if (tc.valueExpr) {
             let valueHtml = paintShapeExpression(tc.valueExpr, soln)
             let ro = (tc.annotations || []).find(a => a.predicate === IRI_LayoutReadOnly)
@@ -963,7 +972,7 @@
             let size = (tc.annotations || []).find(a => a.predicate === IRI_UiSize)
             if (size)
               valueHtml.forEach(h => h.attr("size", size.object.value))
-            return acc.concat(valueHtml)
+            return (idx > 0 ? acc.concat(", ") : acc).concat(valueHtml)
           } else {
             throw Error("PF")
           }
