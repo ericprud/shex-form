@@ -165,7 +165,12 @@ ace.define("ace/mode/shexc_highlight_rules",["require","exports","module","ace/l
         shexDoc: [
           { regex: anyCase("PREFIX"), token: "keyword", push: "prefix_PNAME_NS" }, // IRIREF will pop
           { regex: anyCase("BASE", "IMPORT"), token: "keyword", push: "IRIREF" },
+          { regex: anyCase("START"), token: "keyword", push: "start_equals" },
           iri(".function.shapeExprLabel", {next: "shexDoc", push: "shapeNot" }),
+          allInvalid
+        ],
+        start_equals: [
+          { regex: /=/, token: "constant", next: "shapeNot" },
           allInvalid
         ],
         prefix_PNAME_NS: [
