@@ -314,48 +314,15 @@
     )
   }
 
+  // Layout annotations live in overlay.js, where they can be tested without
+  // a browser.  This is the adapter from the page's globals to the two
+  // things it needs; @shexjs/schema-overlay is the same job done for SemActs
+  // and Annotations both, and slots in here when it is published.
   function annotateSchema (schema, layout) {
-    schema = JSON.parse(JSON.stringify(schema)) // modify copy, not original.
-    let index = shexCore.Util.index(schema); // update index to point at copy.
-    const pathResolver = shexPath(schema, Meta.shexc)
-    layout.getQuads(null, TERM_RdfType, TERM_LayoutType).forEach(quad => {
-      const annotated = layout.getQuads(quad.subject, TERM_LayoutAnnotation, null).map(t => {
-        let elt = null
-        let quads = layout.getQuads(t.object, TERM_LayoutRef, null)
-        if (quads.length) {
-          if (!index)
-            index = shexCore.Util.index(schema);
-          let lookFor = quads[0].object.value
-          elt = index.shapeExprs[lookFor] || index.tripleExprs[lookFor]
-          // console.log([elt, quads[0].object.value, index])
-        } else {
-          const pathStr = layout.getQuads(t.object, TERM_LayoutPath, null)[0].object.value
-          elt = pathResolver.search(pathStr)[0]
-        }
-        const newAnnots = layout.getQuads(t.object, null, null).filter(
-          t => !t.predicate.equals(TERM_LayoutPath)
-        ).map(t => {
-          return {
-            "type": "Annotation",
-            "predicate": t.predicate.value,
-            "object": RDFJStoJSONLD(t.object)}
-        })
-        elt.annotations = newAnnots // @@ merge, overriding same predicate values?
-        return elt
-      })
+    return Overlay.annotateSchema(schema, layout, {
+      index: s => shexCore.Util.index(s),
+      resolvePath: (s, pathStr) => shexPath(s, Meta.shexc).search(pathStr),
     })
-    return schema
-  }
-
-  function RDFJStoJSONLD (rdfjsTerm) {
-    return rdfjsTerm.termType === "Literal"
-      ? Object.assign({"value":rdfjsTerm.value},
-                      rdfjsTerm.datatypeString !== IRI_XsdString
-                      ? {type: rdfjsTerm.datatypeString}
-                      : {})
-      : rdfjsTerm.termType === "BlankNode"
-      ? "_:" + rdfjsTerm.value
-      : rdfjsTerm.value
   }
 
   function getShExApiParms (span) {

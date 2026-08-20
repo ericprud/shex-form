@@ -4,7 +4,7 @@
   "description": "playground for ShEx-driven interfaces",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -C"
   },
   "repository": {
     "type": "git",
@@ -21,5 +21,12 @@
     "@shexjs/core": "^1.0.0-alpha.2",
     "@shexjs/parser": "^1.0.0-alpha.2",
     "n3": "^1.0.5"
+  },
+  "devDependencies": {
+    "@shexjs/parser": "^1.0.0-alpha.28",
+    "@shexjs/util": "^1.0.0-alpha.28",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "shape-path-core": "^0.0.7"
   }
 }
