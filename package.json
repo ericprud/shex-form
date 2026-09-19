@@ -26,7 +26,7 @@
     "@shexjs/parser": "^1.0.0-alpha.28",
     "@shexjs/util": "^1.0.0-alpha.33",
     "chai": "^4.3.10",
-    "mocha": "^10.2.0",
+    "mocha": "^12.0.1",
     "shape-path-core": "^0.0.8"
   }
 }
