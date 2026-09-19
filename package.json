@@ -20,7 +20,7 @@
   "dependencies": {
     "@shexjs/core": "^1.0.0-alpha.2",
     "@shexjs/parser": "^1.0.0-alpha.2",
-    "n3": "^1.0.5"
+    "n3": "^2.7.12"
   },
   "devDependencies": {
     "@shexjs/parser": "^1.0.0-alpha.28",
