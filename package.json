@@ -25,7 +25,7 @@
   "devDependencies": {
     "@shexjs/parser": "^1.0.0-alpha.33",
     "@shexjs/util": "^1.0.0-alpha.33",
-    "chai": "^6.2.2",
+    "chai": "^6.3.0",
     "mocha": "^12.0.3",
     "shape-path-core": "^0.0.8"
   }
